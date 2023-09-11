@@ -71,16 +71,19 @@ class ConditionalUnet1D(nn.Module):
         input_dim,
         local_cond_dim=None,
         global_cond_dim=None,
+        horizon = None,
         diffusion_step_embed_dim=256,
         down_dims=[256,512,1024],
         kernel_size=3,
         n_groups=8,
-        cond_predict_scale=False
+        cond_predict_scale=False,
+        mrollouts = False
         ):
         super().__init__()
         all_dims = [input_dim] + list(down_dims)
         start_dim = down_dims[0]
-
+        if mrollouts:
+            global_cond_dim += 12*horizon
         dsed = diffusion_step_embed_dim
         diffusion_step_encoder = nn.Sequential(
             SinusoidalPosEmb(dsed),

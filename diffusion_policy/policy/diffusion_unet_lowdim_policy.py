@@ -24,6 +24,7 @@ class DiffusionUnetLowdimPolicy(BaseLowdimPolicy):
             obs_as_global_cond=False,
             pred_action_steps_only=False,
             oa_step_convention=False,
+            mstep_prediction = True,
             # parameters passed to step
             **kwargs):
         super().__init__()
@@ -49,6 +50,7 @@ class DiffusionUnetLowdimPolicy(BaseLowdimPolicy):
         self.obs_as_global_cond = obs_as_global_cond
         self.pred_action_steps_only = pred_action_steps_only
         self.oa_step_convention = oa_step_convention
+        self.mstep_prediction = mstep_prediction
         self.kwargs = kwargs
 
         if num_inference_steps is None:
@@ -96,7 +98,7 @@ class DiffusionUnetLowdimPolicy(BaseLowdimPolicy):
         return trajectory
 
 
-    def predict_action(self, obs_dict: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
+    def predict_action(self, obs_dict: Dict[str, torch.Tensor], torque_dict = None) -> Dict[str, torch.Tensor]:
         """
         obs_dict: must include "obs" key
         result: must include "action" key
@@ -105,6 +107,8 @@ class DiffusionUnetLowdimPolicy(BaseLowdimPolicy):
         assert 'obs' in obs_dict
         assert 'past_action' not in obs_dict # not implemented yet
         nobs = self.normalizer['obs'].normalize(obs_dict['obs'])
+        if  self.mstep_prediction:
+            ntorques = self.normalizer['torque'].normalize(torque_dict['torques'])
         B, _, Do = nobs.shape
         To = self.n_obs_steps
         assert Do == self.obs_dim
@@ -128,7 +132,10 @@ class DiffusionUnetLowdimPolicy(BaseLowdimPolicy):
             cond_mask = torch.zeros_like(cond_data, dtype=torch.bool)
         elif self.obs_as_global_cond:
             # condition throught global feature
-            global_cond = nobs[:,:To].reshape(nobs.shape[0], -1)
+            if self.mstep_prediction:
+                global_cond = torch.concat([nobs[:,:To].reshape(nobs.shape[0], -1), ntorques[:,:T].reshape(nobs.shape[0], -1)], dim=1)
+            else:
+                global_cond = nobs[:,:To].reshape(nobs.shape[0], -1)
             shape = (B, T, Da)
             if self.pred_action_steps_only:
                 shape = (B, self.n_action_steps, Da)
@@ -185,6 +192,7 @@ class DiffusionUnetLowdimPolicy(BaseLowdimPolicy):
         assert 'valid_mask' not in batch
         nbatch = self.normalizer.normalize(batch)
         obs = nbatch['obs']
+        torque = nbatch['torque']
         action = nbatch['action']
 
         # handle different ways of passing observation
@@ -196,8 +204,12 @@ class DiffusionUnetLowdimPolicy(BaseLowdimPolicy):
             local_cond = obs
             local_cond[:,self.n_obs_steps:,:] = 0
         elif self.obs_as_global_cond:
-            global_cond = obs[:,:self.n_obs_steps,:].reshape(
-                obs.shape[0], -1)
+            if self.mstep_prediction:
+                global_cond = torch.concat([obs[:,:self.n_obs_steps,:].reshape(obs.shape[0], -1), 
+                                            torque[:,:self.horizon].reshape(obs.shape[0], -1)], dim=1)
+            else:
+                global_cond = obs[:,:self.n_obs_steps,:].reshape(
+                    obs.shape[0], -1)
             if self.pred_action_steps_only:
                 To = self.n_obs_steps
                 start = To

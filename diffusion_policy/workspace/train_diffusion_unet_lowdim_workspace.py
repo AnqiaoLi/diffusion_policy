@@ -247,8 +247,11 @@ class TrainDiffusionUnetLowdimWorkspace(BaseWorkspace):
                         batch = train_sampling_batch
                         obs_dict = {'obs': batch['obs']}
                         gt_action = batch['action']
-                        
-                        result = policy.predict_action(obs_dict)
+                        if cfg.policy.model.mrollouts:
+                            torques_dict = {'torques': batch['torque']}
+                            result = policy.predict_action(obs_dict, torques_dict)
+                        else:
+                            result = policy.predict_action(obs_dict)
                         if cfg.pred_action_steps_only:
                             pred_action = result['action']
                             start = cfg.n_obs_steps - 1
