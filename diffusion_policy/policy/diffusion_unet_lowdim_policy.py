@@ -192,7 +192,8 @@ class DiffusionUnetLowdimPolicy(BaseLowdimPolicy):
         assert 'valid_mask' not in batch
         nbatch = self.normalizer.normalize(batch)
         obs = nbatch['obs']
-        torque = nbatch['torque']
+        if self.mstep_prediction:
+            torque = nbatch['torque']
         action = nbatch['action']
 
         # handle different ways of passing observation
