@@ -69,21 +69,21 @@ class TrainDiffusionUnetLowdimWorkspace(BaseWorkspace):
             if lastest_ckpt_path.is_file():
                 print(f"Resuming from checkpoint {lastest_ckpt_path}")
                 self.load_checkpoint(path=lastest_ckpt_path)
+                self.global_step = 300
 
         # configure dataset
         dataset: BaseLowdimDataset
         dataset = hydra.utils.instantiate(cfg.task.dataset)
         assert isinstance(dataset, BaseLowdimDataset)
         train_dataloader = DataLoader(dataset, **cfg.dataloader)
-        normalizer = dataset.get_normalizer(range_eps=1e-10, mode="limits")
-
+        if not cfg.training.resume:
+            normalizer = dataset.get_normalizer(range_eps=1e-10, mode="limits")
+            self.model.set_normalizer(normalizer)
+            if cfg.training.use_ema:
+                self.ema_model.set_normalizer(normalizer)
         # configure validation dataset
         val_dataset = dataset.get_validation_dataset()
-        val_dataloader = DataLoader(val_dataset, **cfg.val_dataloader)
-
-        self.model.set_normalizer(normalizer)
-        if cfg.training.use_ema:
-            self.ema_model.set_normalizer(normalizer)
+        val_dataloader = DataLoader(val_dataset, **cfg.val_dataloader)    
 
         # configure lr scheduler
         lr_scheduler = get_scheduler(
