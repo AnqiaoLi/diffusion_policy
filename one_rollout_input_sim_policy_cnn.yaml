@@ -28,8 +28,8 @@ keypoint_visible_rate: 1.0
 logging:
   group: null
   id: null
-  # mode: disabled
-  mode: online
+  mode: disabled
+  # mode: online
   name: train_diffusion_unet_lowdim_slipperness
   project: diffusion_policy_debug
   resume: true
@@ -62,7 +62,7 @@ policy:
   horizon: 16
   mstep_prediction: false
   model:
-    _target_: diffusion_policy.model.diffusion.conditional_unet1d.ConditionalUnet1D
+    _target_: diffusion_policy.model.diffusion.conditional_unet1d_simple.ConditionalUnet1D
     mrollouts: false
     # horizon: 16
     cond_predict_scale: true
@@ -97,14 +97,14 @@ pred_action_steps_only: false
 task:
   action_dim: 37
   dataset:
-    _target_: diffusion_policy.dataset.slipperness_dataset.SlippernessLowdimDataset
+    _target_: diffusion_policy.dataset.pyramid_dataset.PyramidSupervideHorizonDataset
     horizon: 16
     max_train_episodes: 90
-    pad_after: 7
-    pad_before: 1
+    pad_after: 0
+    pad_before: 0
     seed: 42
-    val_ratio: 0.02
-    zarr_path: /home/anqiao/SP-DGDM/Data/traj_expand_obs_dim.zarr
+    val_ratio: 0.1
+    zarr_path: /media/anqiao/My Passport/SP/Data/traj_data_pyramid_terrain/traj_expand_obs_dim_supervised_horion=1+5.zarr
   env_runner:
     _target_: diffusion_policy.env_runner.pusht_keypoints_runner.PushTKeypointsRunner
     agent_keypoints: false
@@ -143,7 +143,7 @@ training:
   seed: 42
   tqdm_interval_sec: 1.0
   use_ema: true
-  val_every: 1
+  val_every: 10
 val_dataloader:
   batch_size: 1024
   num_workers: 1
