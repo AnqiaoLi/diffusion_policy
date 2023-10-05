@@ -28,8 +28,8 @@ keypoint_visible_rate: 1.0
 logging:
   group: null
   id: null
-  mode: disabled
-  # mode: online
+  # mode: disabled
+  mode: online
   name: train_diffusion_unet_lowdim_slipperness
   project: diffusion_policy_debug
   resume: true
@@ -62,7 +62,7 @@ policy:
   horizon: 16
   mstep_prediction: false
   model:
-    _target_: diffusion_policy.model.diffusion.conditional_unet1d_simple.ConditionalUnet1D
+    _target_: diffusion_policy.model.diffusion.conditional_unet1d.ConditionalUnet1D
     mrollouts: false
     # horizon: 16
     cond_predict_scale: true
@@ -138,6 +138,7 @@ training:
   max_val_steps: null
   num_epochs: 500
   resume: true
+  resume_checkpoint_dir: None
   rollout_every: 50
   sample_every: 5
   seed: 42
