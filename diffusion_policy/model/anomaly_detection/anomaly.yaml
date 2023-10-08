@@ -1,0 +1,66 @@
+name: AnomalyDetection
+task_name: AnomalyDetection
+device: cuda:0
+dataloader:
+  batch_size: 1024
+  num_workers: 1
+  persistent_workers: false
+  pin_memory: true
+  shuffle: true
+logging:
+  group: null
+  id: null
+  # mode: disabled
+  mode: online
+  name: AnomalyDetection
+  project: anomaly_detection
+  resume: False
+  tags:
+  - anomaly_detection
+  - autoencoder
+  - default
+optimizer:
+  _target_: torch.optim.AdamW
+  betas:
+  - 0.95
+  - 0.999
+  eps: 1.0e-08
+  lr: 0.0001
+  weight_decay: 1.0e-06
+dataset:
+  # _target_: diffusion_policy.dataset.pyramid_dataset.PyramidSupervideHorizonDataset
+  _target_: diffusion_policy.dataset.slipperness_dataset.SlippernessLowdimDataset
+  horizon: 16
+  max_train_episodes: 90
+  pad_after: 0
+  pad_before: 0
+  seed: 42
+  val_ratio: 0.1
+  # zarr_path: /media/anqiao/My Passport/SP/Data/traj_data_pyramid_terrain/traj_expand_obs_dim_supervised_horion=1+5.zarr
+  zarr_path: /home/anqiao/SP-DGDM/Data/traj_data_pyramid_terrain_no_endding_new/traj.zarr
+training:
+  checkpoint_every: 10
+  save_best_num: 5
+  outdir: /media/anqiao/My Passport/SP/AE-checkpoitns/${now:%Y.%m.%d}/${now:%H.%M.%S}_${name}_${task_name}
+  debug: false
+  device: cuda:0
+  gradient_accumulate_every: 1
+  lr_scheduler: cosine
+  lr_warmup_steps: 500
+  max_train_steps: null
+  max_val_steps: null
+  num_epochs: 200
+  resume: true
+  resume_checkpoint_dir: None
+  rollout_every: 50
+  sample_every: 5
+  seed: 42
+  tqdm_interval_sec: 1.0
+  use_ema: true
+  val_every: 2
+val_dataloader:
+  batch_size: 1024
+  num_workers: 1
+  persistent_workers: false
+  pin_memory: true
+  shuffle: false
