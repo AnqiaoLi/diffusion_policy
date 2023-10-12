@@ -28,21 +28,21 @@ keypoint_visible_rate: 1.0
 logging:
   group: null
   id: null
-  # mode: disabled
-  mode: online
+  mode: disabled
+  # mode: online
   name: train_diffusion_unet_lowdim_slipperness
   project: diffusion_policy_debug
-  resume: true
+  resume: false
   tags:
   - train_diffusion_unet_lowdim
-  - slipperness
+  - solving fly away
   - default
 multi_run:
   run_dir: data/outputs/2023.01.16/20.10.02_train_diffusion_unet_lowdim_slipperness
   wandb_name_base: 2023.01.16-20.10.02_train_diffusion_unet_lowdim_slipperness
 n_action_steps: 1
 n_latency_steps: 0
-n_obs_steps: 15
+n_obs_steps: 16
 name: train_diffusion_unet_lowdim
 obs_as_global_cond: true
 obs_as_local_cond: false
@@ -71,13 +71,13 @@ policy:
     - 256
     - 512
     - 1024
-    global_cond_dim: 1230
+    global_cond_dim: 1312
     input_dim: 37
     kernel_size: 5
     local_cond_dim: null
     n_groups: 8
   n_action_steps: 1
-  n_obs_steps: 15
+  n_obs_steps: 16
   noise_scheduler:
     _target_: diffusers.schedulers.scheduling_ddpm.DDPMScheduler
     beta_end: 0.02
@@ -97,14 +97,16 @@ pred_action_steps_only: false
 task:
   action_dim: 37
   dataset:
-    _target_: diffusion_policy.dataset.pyramid_dataset.PyramidSupervideHorizonDataset
+    _target_: diffusion_policy.dataset.slipperness_dataset.SlippernessLowdimDataset
+    # _target_: diffusion_policy.dataset.pyramid_dataset.PyramidSupervideHorizonDataset
     horizon: 16
     max_train_episodes: 90
     pad_after: 0
     pad_before: 0
     seed: 42
     val_ratio: 0.1
-    zarr_path: /media/anqiao/My Passport/SP/Data/traj_data_pyramid_terrain/traj_expand_obs_dim_supervised_horion=1+5.zarr
+    zarr_path: /home/anqiao/SP-DGDM/Data/traj_data_pyramid_terrain_no_endding_new/traj.zarr
+    # zarr_path: /media/anqiao/My Passport/SP/Data/traj_data_pyramid_terrain/traj_expand_obs_dim_supervised_horion=1+5.zarr
   env_runner:
     _target_: diffusion_policy.env_runner.pusht_keypoints_runner.PushTKeypointsRunner
     agent_keypoints: false
@@ -115,7 +117,7 @@ task:
     n_action_steps: 1
     n_envs: null
     n_latency_steps: 0
-    n_obs_steps: 15
+    n_obs_steps: 16
     n_test: 50
     n_test_vis: 4
     n_train: 6
@@ -137,7 +139,7 @@ training:
   max_train_steps: null
   max_val_steps: null
   num_epochs: 500
-  resume: true
+  resume: false
   resume_checkpoint_dir: None
   rollout_every: 50
   sample_every: 5
