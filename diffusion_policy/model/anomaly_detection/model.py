@@ -65,14 +65,19 @@ class Vanilla_AE(nn.Module):
             out = up_module(out)
         return out
     
-    def compute_loss(self, batch):
+    def compute_loss(self, batch, per_batch = False):
         nbatch = self.normalizer.normalize(batch)
         obs = nbatch['obs']
         x = obs[:,:self.n_obs_steps,:].reshape(
                     obs.shape[0], -1)
         out = self(x)
-        loss = torch.mean((out - x)**2)
+        if per_batch:
+            # computer loss for each batch
+            loss = torch.mean((out - x)**2, dim=1)
+        else:
+            loss = torch.mean((out - x)**2)
         return loss
+    
     
 if __name__ == "__main__":
     model = Vanilla_AE().cuda()

@@ -43,8 +43,8 @@ def one_step_mse(checkpoint_path = None, workspace = None, only_last_step = Fals
     
     # init error container
     epoch = 0
-    mse = {"position":0, "quat":0, "linear_vel":0, "angular_vel":0, "joint_pos":0, "joint_vel":0}
-    mse_sim = {"position":0, "quat":0, "linear_vel":0, "angular_vel":0, "joint_pos":0, "joint_vel":0}
+    mse = {"sum":0, "position":0, "quat":0, "linear_vel":0, "angular_vel":0, "joint_pos":0, "joint_vel":0}
+    mse_sim = {"sum":0, "position":0, "quat":0, "linear_vel":0, "angular_vel":0, "joint_pos":0, "joint_vel":0}
     with tqdm.tqdm(val_dataloader, desc=f"One Step MSE", 
         leave=False, mininterval=cfg_diff.training.tqdm_interval_sec) as tepoch:
         for batch_idx, batch in enumerate(tepoch):
@@ -70,6 +70,7 @@ def one_step_mse(checkpoint_path = None, workspace = None, only_last_step = Fals
                 # mse = torch.nn.functional.mse_loss(pred_action, gt_action)
                 # mse #
                 index = -1 if only_last_step else 0
+                mse['sum'] += torch.nn.functional.mse_loss(pred_action[:,index:], gt_action[:,index:])# sum
                 mse["position"] += torch.nn.functional.mse_loss(pred_action[:,index:, 0:3], gt_action[:,index:,0:3])# position
                 mse["quat"] += torch.nn.functional.mse_loss(pred_action[:,index:,3:7], gt_action[:,index:,3:7])# quat
                 mse["linear_vel"] += torch.nn.functional.mse_loss(pred_action[:,index:,7:10], gt_action[:,index:,7:10])# linear_vel
@@ -79,6 +80,7 @@ def one_step_mse(checkpoint_path = None, workspace = None, only_last_step = Fals
 
                 # mse_sim #
                 pred_action.zero_()
+                mse_sim['sum'] += torch.nn.functional.mse_loss(pred_action[:,index:], gt_action[:,index:])# sum
                 mse_sim["position"] += torch.nn.functional.mse_loss(pred_action[:,index:, 0:3], gt_action[:,index:,0:3])# position
                 mse_sim["quat"] += torch.nn.functional.mse_loss(pred_action[:,index:,3:7], gt_action[:,index:,3:7])# quat
                 mse_sim["linear_vel"] += torch.nn.functional.mse_loss(pred_action[:,index:,7:10], gt_action[:,index:,7:10])# linear_vel
@@ -94,5 +96,5 @@ def one_step_mse(checkpoint_path = None, workspace = None, only_last_step = Fals
     print("mse_sim: ", mse_sim)
 
 if __name__ == "__main__":
-    checkpoint_path = "/media/anqiao/My Passport/SP-checkpoitns/2023.09.15_input_sim/20.07.29_train_diffusion_unet_lowdim_slipperness_lowdim/checkpoints/latest.ckpt"
+    checkpoint_path = "/media/anqiao/My Passport/SP/SP-checkpoitns/2023.09.15_input_sim/20.07.29_input_sim/checkpoints/latest.ckpt"
     one_step_mse(checkpoint_path)

@@ -9,25 +9,26 @@ from diffusion_policy.common.sampler import (
 from diffusion_policy.model.common.normalizer import LinearNormalizer
 from diffusion_policy.dataset.base_dataset import BaseLowdimDataset
 
-class SlippernessLowdimDataset(BaseLowdimDataset):
+class AccelerationDataset(BaseLowdimDataset):
     """
-    This dataset is a basic dataset for diffusion dynamics model
+    This dataset is a basic dataset for accelerated diffusion (pipline diffuison)
     """
     def __init__(self, 
             zarr_path, 
-            horizon=1,
+            horizon=16,
             pad_before=0,
             pad_after=0,
             state_key='state',
             action_key='action',
             seed=42,
             val_ratio=0.0,
-            max_train_episodes=None
+            max_train_episodes=None,
+            diffusion_step = 10
             ):
         super().__init__()
         self.replay_buffer = ReplayBuffer.copy_from_path(
             zarr_path, keys=[state_key, action_key])
-
+        
         val_mask = get_val_mask(
             n_episodes=self.replay_buffer.n_episodes, 
             val_ratio=val_ratio,
@@ -40,7 +41,7 @@ class SlippernessLowdimDataset(BaseLowdimDataset):
 
         self.sampler = SequenceSampler(
             replay_buffer=self.replay_buffer, 
-            sequence_length=horizon,
+            sequence_length=horizon + diffusion_step - 1,
             pad_before=pad_before, 
             pad_after=pad_after,
             episode_mask=train_mask
@@ -51,6 +52,7 @@ class SlippernessLowdimDataset(BaseLowdimDataset):
         self.train_mask = train_mask
         self.val_mask = val_mask
         self.horizon = horizon
+        self.diffusion_step = diffusion_step
         self.pad_before = pad_before
         self.pad_after = pad_after
 
@@ -58,7 +60,7 @@ class SlippernessLowdimDataset(BaseLowdimDataset):
         val_set = copy.copy(self)
         val_set.sampler = SequenceSampler(
             replay_buffer=self.replay_buffer, 
-            sequence_length=self.horizon,
+            sequence_length=self.horizon + self.diffusion_step - 1,
             pad_before=self.pad_before, 
             pad_after=self.pad_after,
             episode_mask=self.val_mask
@@ -88,6 +90,6 @@ class SlippernessLowdimDataset(BaseLowdimDataset):
     def __getitem__(self, idx: int) -> Dict[str, torch.Tensor]:
         sample = self.sampler.sample_sequence(idx)
         data = self._sample_to_data(sample)
-
+        data['action'] = data['action'][-self.horizon:]
         torch_data = dict_apply(data, torch.from_numpy)
         return torch_data
