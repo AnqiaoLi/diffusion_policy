@@ -23,7 +23,7 @@ class PyramidSupervideHorizonDataset(BaseLowdimDataset):
             seed=42,
             val_ratio=0.0,
             max_train_episodes=None,
-            supervised_horizon=1
+            supervised_horizon=10
             ):
         super().__init__()
         extend_state_keys = ["state_{:03d}".format(i+1) for i in range(supervised_horizon)]

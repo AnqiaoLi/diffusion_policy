@@ -19,12 +19,14 @@ class SlippernessLowdimDataset(BaseLowdimDataset):
             action_key='action',
             seed=42,
             val_ratio=0.0,
-            max_train_episodes=None
+            max_train_episodes=None,
+            pred_res = True
             ):
         super().__init__()
         self.replay_buffer = ReplayBuffer.copy_from_path(
             zarr_path, keys=[state_key, action_key])
-
+        if not pred_res:
+            self.replay_buffer['action'][:, 2:] = self.replay_buffer['action'][:, 2:] + self.replay_buffer['state'][: , 35:70]
         val_mask = get_val_mask(
             n_episodes=self.replay_buffer.n_episodes, 
             val_ratio=val_ratio,
@@ -50,6 +52,7 @@ class SlippernessLowdimDataset(BaseLowdimDataset):
         self.horizon = horizon
         self.pad_before = pad_before
         self.pad_after = pad_after
+        self.pred_res = pred_res
 
     def get_validation_dataset(self):
         val_set = copy.copy(self)
@@ -77,8 +80,8 @@ class SlippernessLowdimDataset(BaseLowdimDataset):
 
     def _sample_to_data(self, sample):
         data = {
-            'obs': sample[self.state_key], # T, D_o
-            'action': sample[self.action_key], # T, D_a
+        'obs': sample[self.state_key], # T, D_o
+        'action': sample[self.action_key], # T, D_a
         }
         return data
 

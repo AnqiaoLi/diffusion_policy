@@ -28,7 +28,7 @@ def create_indices(
             
             min_start = -pad_before
             if h !=0:
-                min_start = -pad_before + 1
+                min_start = -pad_before + h + sequence_length - 1
             max_start = episode_length - sequence_length + pad_after
             
             # range stops one idx before end
