@@ -1,0 +1,101 @@
+_target_: diffusion_policy.workspace.train_robomimic_lowdim_workspace.TrainRobomimicLowdimWorkspace
+action_dim: 36
+checkpoint:
+  save_last_ckpt: true
+  save_last_snapshot: false
+  topk:
+    format_str: epoch={epoch:04d}-val_loss={val_loss:.3f}.ckpt
+    k: 5
+    mode: min
+    monitor_key: val_loss
+dataloader:
+  batch_size: 4096
+  num_workers: 1
+  persistent_workers: false
+  pin_memory: true
+  shuffle: true
+exp_name: default
+horizon: 16
+keypoint_visible_rate: 1.0
+logging:
+  group: null
+  id: null
+  mode: online
+  # mode: disabled
+  name: test_lstm
+  project: diffusion_policy_debug
+  entity: anqiaoli
+  resume: true
+  tags:
+  - lstm
+  - pusht_lowdim
+  - default
+multi_run:
+  run_dir: data/outputs/2023.01.16/20.09.28_train_robomimic_lowdim_pusht_lowdim
+  wandb_name_base: 2023.01.16-20.09.28_train_robomimic_lowdim_pusht_lowdim
+n_action_steps: 8
+n_latency_steps: 0
+n_obs_steps: 10
+name: train_robomimic_lowdim
+obs_dim: 80
+past_action_visible: false
+policy:
+  _target_: diffusion_policy.policy.robomimic_lowdim_policy.RobomimicLowdimPolicy
+  action_dim: 46
+  algo_name: bc_rnn
+  dataset_type: ph
+  obs_dim: 80
+  obs_type: low_dim
+  task_name: lift
+task:
+  action_dim: 46
+  dataset:
+    _target_: diffusion_policy.dataset.slipperness_dataset.SlippernessLowdimDataset
+    horizon: 8
+    max_train_episodes: 90
+    pad_after: 0
+    pad_before: 0
+    seed: 42
+    val_ratio: 0.02
+    zarr_path: /media/anqiao/My Passport/SP/Data/traj_data_pyramid_terrain_no_endding_base_003/traj.zarr
+  env_runner:
+    _target_: diffusion_policy.env_runner.pusht_keypoints_runner.PushTKeypointsRunner
+    agent_keypoints: false
+    fps: 10
+    keypoint_visible_rate: 1.0
+    legacy_test: true
+    max_steps: 300
+    n_action_steps: 1
+    n_envs: null
+    n_latency_steps: 0
+    n_obs_steps: 1
+    n_test: 50
+    n_test_vis: 4
+    n_train: 6
+    n_train_vis: 2
+    past_action: false
+    test_start_seed: 100000
+    train_start_seed: 0
+  keypoint_dim: 2
+  name: pusht_lowdim
+  obs_dim: 80
+task_name: lstm_slipperness
+training:
+  checkpoint_every: 50
+  debug: false
+  device: cuda:0
+  max_train_steps: null
+  max_val_steps: null
+  num_epochs: 5000
+  resume: true
+  rollout_every: 50
+  seed: 42
+  tqdm_interval_sec: 1.0
+  val_every: 1
+transition_dim: 22
+val_dataloader:
+  batch_size: 4096
+  num_workers: 1
+  persistent_workers: false
+  pin_memory: true
+  shuffle: false

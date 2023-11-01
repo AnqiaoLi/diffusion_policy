@@ -64,7 +64,7 @@ class TrainRobomimicLowdimWorkspace(BaseWorkspace):
         dataset = hydra.utils.instantiate(cfg.task.dataset)
         assert isinstance(dataset, BaseLowdimDataset)
         train_dataloader = DataLoader(dataset, **cfg.dataloader)
-        normalizer = dataset.get_normalizer()
+        normalizer = dataset.get_normalizer(range_eps=1e-10, mode="limits")
 
         # configure validation dataset
         val_dataset = dataset.get_validation_dataset()
@@ -152,11 +152,11 @@ class TrainRobomimicLowdimWorkspace(BaseWorkspace):
                 # ========= eval for this epoch ==========
                 self.model.eval()
 
-                # run rollout
-                if (self.epoch % cfg.training.rollout_every) == 0:
-                    runner_log = env_runner.run(self.model)
-                    # log all
-                    step_log.update(runner_log)
+                # # run rollout
+                # if (self.epoch % cfg.training.rollout_every) == 0:
+                #     runner_log = env_runner.run(self.model)
+                #     # log all
+                #     step_log.update(runner_log)
 
                 # run validation
                 if (self.epoch % cfg.training.val_every) == 0:
