@@ -41,14 +41,14 @@ obs_dim: 80
 past_action_visible: false
 policy:
   _target_: diffusion_policy.policy.robomimic_lowdim_policy.RobomimicLowdimPolicy
-  action_dim: 46
+  action_dim: 37
   algo_name: bc_rnn
   dataset_type: ph
   obs_dim: 80
   obs_type: low_dim
   task_name: lift
 task:
-  action_dim: 46
+  action_dim: 37
   dataset:
     _target_: diffusion_policy.dataset.slipperness_dataset.SlippernessLowdimDataset
     horizon: 8
