@@ -31,12 +31,13 @@ logging:
   mode: disabled
   # mode: online
   name: acceleration_test
-  project: diffusion_policy_debug
+  entity: anqiaoli
+  project: accelrated_diffusion
   resume: false
   tags:
-  - train_diffusion_unet_lowdim
-  - solving fly away
-  - default
+  - accelrated_diffusion
+  - fast
+  - less accuracy
 multi_run:
   run_dir: data/outputs/2023.01.16/20.10.02_train_diffusion_unet_lowdim_slipperness
   wandb_name_base: 2023.01.16-20.10.02_train_diffusion_unet_lowdim_slipperness
