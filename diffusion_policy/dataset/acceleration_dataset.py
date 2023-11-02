@@ -23,7 +23,8 @@ class AccelerationDataset(BaseLowdimDataset):
             seed=42,
             val_ratio=0.0,
             max_train_episodes=None,
-            diffusion_step = 10
+            diffusion_step = 10,
+            only_predict_base = True
             ):
         super().__init__()
         self.replay_buffer = ReplayBuffer.copy_from_path(
@@ -55,6 +56,12 @@ class AccelerationDataset(BaseLowdimDataset):
         self.diffusion_step = diffusion_step
         self.pad_before = pad_before
         self.pad_after = pad_after
+        self.only_predict_base = only_predict_base
+        if self.only_predict_base:
+            # base pose + joint + base_vels = 37
+            self.action_mask = list(range(0,7)) + list(range(13, 37)) + list(range(40, 46))
+        else:
+            self.action_mask = list(range(0, 46))
 
     def get_validation_dataset(self):
         val_set = copy.copy(self)
@@ -83,7 +90,7 @@ class AccelerationDataset(BaseLowdimDataset):
     def _sample_to_data(self, sample):
         data = {
             'obs': sample[self.state_key], # T, D_o
-            'action': sample[self.action_key], # T, D_a
+            'action': sample[self.action_key][:, self.action_mask], # T, D_a
         }
         return data
 
