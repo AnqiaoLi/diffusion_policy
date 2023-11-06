@@ -28,8 +28,8 @@ keypoint_visible_rate: 1.0
 logging:
   group: null
   id: null
-  # mode: disabled
-  mode: online
+  mode: disabled
+  # mode: online
   name: base_frame_vels
   entity: anqiaoli
   project: diffusion_policy_debug
@@ -62,6 +62,8 @@ policy:
   action_dim: 37
   horizon: 16
   mstep_prediction: false
+  add_noise: true
+  noise_range: 0.1
   model:
     _target_: diffusion_policy.model.diffusion.conditional_unet1d.ConditionalUnet1D
     mrollouts: false
