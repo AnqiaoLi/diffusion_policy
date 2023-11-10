@@ -9,7 +9,7 @@ checkpoint:
     mode: min
     monitor_key: val_loss
 dataloader:
-  batch_size: 4048
+  batch_size: 2048
   num_workers: 1
   persistent_workers: false
   pin_memory: true
@@ -27,8 +27,9 @@ keypoint_visible_rate: 1.0
 logging:
   group: null
   id: null
-  mode: online
-  name: 2023.01.16-20.11.42_train_diffusion_transformer_lowdim_pusht_lowdim
+  mode: disabled
+  name: transformer_random_push
+  entity: anqiaoli
   project: diffusion_policy_debug
   resume: true
   tags:
@@ -43,7 +44,7 @@ n_latency_steps: 0
 n_obs_steps: 15
 name: train_diffusion_transformer_lowdim
 obs_as_cond: true
-obs_dim: 82
+obs_dim: 80
 optimizer:
   betas:
   - 0.9
@@ -58,7 +59,7 @@ policy:
   model:
     _target_: diffusion_policy.model.diffusion.transformer_for_diffusion.TransformerForDiffusion
     causal_attn: true
-    cond_dim: 82
+    cond_dim: 80
     horizon: 16
     input_dim: 37
     n_cond_layers: 0
@@ -79,12 +80,12 @@ policy:
     beta_schedule: squaredcos_cap_v2
     beta_start: 0.0001
     clip_sample: true
-    num_train_timesteps: 100
+    num_train_timesteps: 10
     prediction_type: epsilon
     variance_type: fixed_small
-  num_inference_steps: 100
+  num_inference_steps: 10
   obs_as_cond: true
-  obs_dim: 82
+  obs_dim: 80
   pred_action_steps_only: false
 pred_action_steps_only: false
 task:
@@ -97,7 +98,7 @@ task:
     pad_before: 0
     seed: 42
     val_ratio: 0.02
-    zarr_path: /home/anqiao/SP-DGDM/Data/traj_data_pyramid_terrain_no_endding/traj_expand_obs_dim.zarr
+    zarr_path: /media/anqiao/My Passport/SP/Data/traj_data_random_push_001/traj.zarr
   env_runner:
     _target_: diffusion_policy.env_runner.pusht_keypoints_runner.PushTKeypointsRunner
     agent_keypoints: false
@@ -118,7 +119,7 @@ task:
     train_start_seed: 0
   keypoint_dim: 2
   name: pusht_lowdim
-  obs_dim: 82
+  obs_dim: 80
 task_name: pusht_lowdim
 training:
   checkpoint_every: 50
