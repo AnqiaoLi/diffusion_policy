@@ -97,4 +97,5 @@ def one_step_mse(checkpoint_path = None, workspace = None, only_last_step = Fals
 
 if __name__ == "__main__":
     checkpoint_path = "/media/anqiao/My Passport/SP/SP-checkpoitns/2023.09.15_input_sim/20.07.29_input_sim/checkpoints/latest.ckpt"
+    checkpoint_path = "/media/anqiao/My Passport/SP/SP-checkpoitns/2023.09.15_input_sim/20.07.29_input_sim/checkpoints/latest.ckpt"
     one_step_mse(checkpoint_path)
