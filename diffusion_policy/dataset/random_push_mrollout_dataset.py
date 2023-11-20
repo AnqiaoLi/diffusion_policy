@@ -16,7 +16,7 @@ class SlippernessLowdimDataset(BaseLowdimDataset):
             pad_before=0,
             pad_after=0,
             state_key='state',
-            torque_key='torque',
+            command_key='command',
             action_key='action',
             seed=42,
             val_ratio=0.0,
@@ -24,7 +24,7 @@ class SlippernessLowdimDataset(BaseLowdimDataset):
             ):
         super().__init__()
         self.replay_buffer = ReplayBuffer.copy_from_path(
-            zarr_path, keys=[state_key, action_key, torque_key])
+            zarr_path, keys=[state_key, action_key, command_key])
 
         val_mask = get_val_mask(
             n_episodes=self.replay_buffer.n_episodes, 
@@ -45,7 +45,7 @@ class SlippernessLowdimDataset(BaseLowdimDataset):
             )
         self.state_key = state_key
         self.action_key = action_key
-        self.torque_key = torque_key
+        self.command_key = command_key
         self.train_mask = train_mask
         self.horizon = horizon
         self.pad_before = pad_before
@@ -78,7 +78,7 @@ class SlippernessLowdimDataset(BaseLowdimDataset):
     def _sample_to_data(self, sample):
         data = {
             'obs': sample[self.state_key], # T, D_o
-            'torque': sample[self.torque_key],
+            'command': sample[self.command_key],
             'action': sample[self.action_key], # T, D_a
         }
         return data
