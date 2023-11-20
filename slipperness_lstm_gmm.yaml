@@ -22,7 +22,7 @@ logging:
   id: null
   mode: online
   # mode: disabled
-  name: test_lstm
+  name: test_lstm_random_push
   project: diffusion_policy_debug
   entity: anqiaoli
   resume: true
@@ -33,9 +33,9 @@ logging:
 multi_run:
   run_dir: data/outputs/2023.01.16/20.09.28_train_robomimic_lowdim_pusht_lowdim
   wandb_name_base: 2023.01.16-20.09.28_train_robomimic_lowdim_pusht_lowdim
-n_action_steps: 8
+n_action_steps: 1
 n_latency_steps: 0
-n_obs_steps: 10
+n_obs_steps: 16
 name: train_robomimic_lowdim
 obs_dim: 80
 past_action_visible: false
@@ -47,6 +47,8 @@ policy:
   obs_dim: 80
   obs_type: low_dim
   task_name: lift
+  add_noise: true
+  noise_range: 0.1
 task:
   action_dim: 37
   dataset:
@@ -57,7 +59,7 @@ task:
     pad_before: 0
     seed: 42
     val_ratio: 0.02
-    zarr_path: /media/anqiao/My Passport/SP/Data/traj_data_pyramid_terrain_no_endding_base_003/traj.zarr
+    zarr_path: /media/anqiao/My Passport/SP/Data/traj_data_slipperiness_001/traj.zarr
   env_runner:
     _target_: diffusion_policy.env_runner.pusht_keypoints_runner.PushTKeypointsRunner
     agent_keypoints: false
@@ -86,7 +88,7 @@ training:
   device: cuda:0
   max_train_steps: null
   max_val_steps: null
-  num_epochs: 5000
+  num_epochs: 1000
   resume: true
   rollout_every: 50
   seed: 42

@@ -60,11 +60,9 @@ policy:
   _target_: diffusion_policy.policy.diffusion_unet_lowdim_policy.DiffusionUnetLowdimPolicy
   action_dim: 37
   horizon: 16
-  input_reference: true
   mstep_prediction: false
   model:
     _target_: diffusion_policy.model.diffusion.conditional_unet1d.ConditionalUnet1D
-    input_reference: true
     mrollouts: false
     # horizon: 16
     cond_predict_scale: true
@@ -102,11 +100,12 @@ task:
     _target_: diffusion_policy.dataset.slipperness_dataset.SlippernessLowdimDataset
     horizon: 16
     max_train_episodes: 90
-    pad_after: 7
-    pad_before: 1
+    # the padding does not satisfy the dynamics rules
+    pad_after: 0
+    pad_before: 0
     seed: 42
     val_ratio: 0.02
-    zarr_path: /home/anqiao/SP-DGDM/Data/traj_data_pyramid_terrain/traj_origin.zarr
+    zarr_path: /home/anqiao/SP-DGDM/Data/traj_data_pyramid_terrain_no_endding_base_001/traj.zarr
   env_runner:
     _target_: diffusion_policy.env_runner.pusht_keypoints_runner.PushTKeypointsRunner
     agent_keypoints: false
