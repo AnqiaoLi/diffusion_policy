@@ -7,7 +7,7 @@ from diffusers.schedulers.scheduling_ddpm import DDPMScheduler
 
 from diffusion_policy.model.common.normalizer import LinearNormalizer
 from diffusion_policy.policy.base_lowdim_policy import BaseLowdimPolicy
-from diffusion_policy.model.baseline.cnn_baseline import Vanilla_CNN
+from diffusion_policy.model.baseline.resnet_baseline import Vanilla_CNN
 from diffusion_policy.model.diffusion.mask_generator import LowdimMaskGenerator
 
 class CNNLowdimPolicy(BaseLowdimPolicy):

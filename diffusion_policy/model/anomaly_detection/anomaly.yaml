@@ -13,6 +13,7 @@ logging:
   # mode: disabled
   mode: online
   name: AnomalyDetection
+  entity: anqiaoli
   project: anomaly_detection
   resume: False
   tags:
@@ -37,7 +38,7 @@ dataset:
   seed: 42
   val_ratio: 0.1
   # zarr_path: /media/anqiao/My Passport/SP/Data/traj_data_pyramid_terrain/traj_expand_obs_dim_supervised_horion=1+5.zarr
-  zarr_path: /home/anqiao/SP-DGDM/Data/traj_data_pyramid_terrain_no_endding_new/traj.zarr
+  zarr_path: /media/anqiao/My Passport/SP/Data/traj_data_pyramid_terrain_no_endding_base_003/traj.zarr
 training:
   checkpoint_every: 10
   save_best_num: 5

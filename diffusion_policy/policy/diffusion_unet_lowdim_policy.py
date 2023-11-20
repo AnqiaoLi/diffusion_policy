@@ -24,7 +24,9 @@ class DiffusionUnetLowdimPolicy(BaseLowdimPolicy):
             obs_as_global_cond=False,
             pred_action_steps_only=False,
             oa_step_convention=False,
-            mstep_prediction = True,
+            mstep_prediction = False,
+            add_noise = False,
+            noise_range = 0.0,
             # parameters passed to step
             **kwargs):
         super().__init__()
@@ -51,6 +53,8 @@ class DiffusionUnetLowdimPolicy(BaseLowdimPolicy):
         self.pred_action_steps_only = pred_action_steps_only
         self.oa_step_convention = oa_step_convention
         self.mstep_prediction = mstep_prediction
+        self.add_noise = add_noise
+        self.noise_range = noise_range
         self.kwargs = kwargs
 
         if num_inference_steps is None:
@@ -191,6 +195,9 @@ class DiffusionUnetLowdimPolicy(BaseLowdimPolicy):
         # normalize input
         assert 'valid_mask' not in batch
         nbatch = self.normalizer.normalize(batch)
+        # add noise
+        if self.add_noise:
+            nbatch['obs'] += torch.randn_like(nbatch['obs'], device=self.device)*self.noise_range
         obs = nbatch['obs']
         if self.mstep_prediction:
             torque = nbatch['torque']

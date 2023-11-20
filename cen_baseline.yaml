@@ -1,15 +1,15 @@
-_target_: diffusion_policy.workspace.train_diffusion_transformer_lowdim_workspace.TrainDiffusionTransformerLowdimWorkspace
+_target_: diffusion_policy.workspace.train_cnn_lowdim_workspace.TrainCNNLowdimWorkspace
 action_dim: 37
 checkpoint:
   save_last_ckpt: true
   save_last_snapshot: false
   topk:
     format_str: epoch={epoch:04d}-val_loss={val_loss:.3f}.ckpt
-    k: 5
+    k: 3
     mode: min
     monitor_key: val_loss
 dataloader:
-  batch_size: 2048
+  batch_size: 1024
   num_workers: 1
   persistent_workers: false
   pin_memory: true
@@ -23,82 +23,66 @@ ema:
   update_after_step: 0
 exp_name: default
 horizon: 16
+keypoint_dim: 2
 keypoint_visible_rate: 1.0
 logging:
   group: null
   id: null
-  mode: disabled
-  name: transformer_random_push
-  entity: anqiaoli
+  # mode: disabled
+  mode: online
+  name: baseline_cen_walking
   project: diffusion_policy_debug
-  resume: true
+  entity: anqiaoli
+  resume: false
   tags:
-  - train_diffusion_transformer_lowdim
-  - pyramid_terrain
-  - default
+  - baseline
+  - cen
+  - walking
 multi_run:
-  run_dir: data/outputs/2023.01.16/20.11.42_train_diffusion_transformer_lowdim_pusht_lowdim
-  wandb_name_base: 2023.01.16-20.11.42_train_diffusion_transformer_lowdim_pusht_lowdim
+  run_dir: data/outputs/2023.01.16/20.10.02_train_diffusion_unet_lowdim_slipperness
+  wandb_name_base: 2023.01.16-20.10.02_train_diffusion_unet_lowdim_slipperness
 n_action_steps: 1
 n_latency_steps: 0
-n_obs_steps: 15
-name: train_diffusion_transformer_lowdim
-obs_as_cond: true
+n_obs_steps: 16
+name: train_diffusion_unet_lowdim
+obs_as_global_cond: true
+obs_as_local_cond: false
 obs_dim: 80
 optimizer:
+  _target_: torch.optim.AdamW
   betas:
-  - 0.9
   - 0.95
-  learning_rate: 0.0001
-  weight_decay: 0.001
+  - 0.999
+  eps: 1.0e-08
+  lr: 0.0001
+  weight_decay: 1.0e-06
 past_action_visible: false
 policy:
-  _target_: diffusion_policy.policy.diffusion_transformer_lowdim_policy.DiffusionTransformerLowdimPolicy
+  _target_: diffusion_policy.policy.cnn_lowdim_policy.CNNLowdimPolicy
   action_dim: 37
   horizon: 16
   model:
-    _target_: diffusion_policy.model.diffusion.transformer_for_diffusion.TransformerForDiffusion
-    causal_attn: true
-    cond_dim: 80
+    _target_: diffusion_policy.model.baseline.cen_baseline.CEN
     horizon: 16
-    input_dim: 37
-    n_cond_layers: 0
-    n_emb: 256
-    n_head: 4
-    n_layer: 8
-    n_obs_steps: 15
-    obs_as_cond: true
-    output_dim: 37
-    p_drop_attn: 0.3
-    p_drop_emb: 0.0
-    time_as_cond: true
+    obs_dim: 80
+    action_dim: 37
   n_action_steps: 1
-  n_obs_steps: 15
-  noise_scheduler:
-    _target_: diffusers.schedulers.scheduling_ddpm.DDPMScheduler
-    beta_end: 0.02
-    beta_schedule: squaredcos_cap_v2
-    beta_start: 0.0001
-    clip_sample: true
-    num_train_timesteps: 10
-    prediction_type: epsilon
-    variance_type: fixed_small
-  num_inference_steps: 10
-  obs_as_cond: true
+  n_obs_steps: 16
   obs_dim: 80
-  pred_action_steps_only: false
 pred_action_steps_only: false
 task:
   action_dim: 37
   dataset:
     _target_: diffusion_policy.dataset.slipperness_dataset.SlippernessLowdimDataset
+    # _target_: diffusion_policy.dataset.pyramid_dataset.PyramidSupervideHorizonDataset
     horizon: 16
     max_train_episodes: 90
     pad_after: 0
     pad_before: 0
     seed: 42
-    val_ratio: 0.02
-    zarr_path: /media/anqiao/My Passport/SP/Data/traj_data_random_push_001/traj.zarr
+    val_ratio: 0.1
+    zarr_path: /media/anqiao/My Passport/SP/Data/traj_data_slipperiness_001/traj.zarr
+    # zarr_path: /media/anqiao/My Passport/SP/Data/traj_data_pyramid_terrain/traj_expand_obs_dim_supervised_horion=1+5.zarr
   env_runner:
     _target_: diffusion_policy.env_runner.pusht_keypoints_runner.PushTKeypointsRunner
     agent_keypoints: false
@@ -106,10 +90,10 @@ task:
     keypoint_visible_rate: 1.0
     legacy_test: true
     max_steps: 300
-    n_action_steps: 8
+    n_action_steps: 1
     n_envs: null
     n_latency_steps: 0
-    n_obs_steps: 15
+    n_obs_steps: 16
     n_test: 50
     n_test_vis: 4
     n_train: 6
@@ -118,25 +102,26 @@ task:
     test_start_seed: 100000
     train_start_seed: 0
   keypoint_dim: 2
-  name: pusht_lowdim
+  name: slipperness
   obs_dim: 80
-task_name: pusht_lowdim
+task_name: slipperness_lowdim
 training:
-  checkpoint_every: 50
+  checkpoint_every: 20
   debug: false
   device: cuda:0
   gradient_accumulate_every: 1
   lr_scheduler: cosine
-  lr_warmup_steps: 1000
+  lr_warmup_steps: 500
   max_train_steps: null
   max_val_steps: null
   num_epochs: 500
-  resume: true
+  resume: false
+  resume_checkpoint_dir: None
   rollout_every: 50
-  sample_every: 5
+  sample_every: 1
   seed: 42
   tqdm_interval_sec: 1.0
-  use_ema: true
+  use_ema: false
   val_every: 5
 val_dataloader:
   batch_size: 1024
