@@ -17,9 +17,9 @@ class Vanilla_AE(nn.Module):
     def __init__(self, 
                  inchannels: int=1,
                  input_timestamp: bool=False,
-                 input_dim: int=1230,
+                 input_dim: int=1280,
                  down_dims: list=[512, 256, 128],
-                 n_obs_steps: int=15) -> None:
+                 n_obs_steps: int=16) -> None:
         super().__init__()
 
         # input_shape 1x1230

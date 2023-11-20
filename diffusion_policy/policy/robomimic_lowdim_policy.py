@@ -16,6 +16,8 @@ class RobomimicLowdimPolicy(BaseLowdimPolicy):
             obs_type='low_dim',
             task_name='square',
             dataset_type='ph',
+            add_noise=False,
+            noise_range=0.01
         ):
         super().__init__()
         # key for robomimic obs input
@@ -42,6 +44,8 @@ class RobomimicLowdimPolicy(BaseLowdimPolicy):
         self.nets = model.nets
         self.normalizer = LinearNormalizer()
         self.obs_key = obs_key
+        self.add_noise = add_noise
+        self.noise_range = noise_range
         self.config = config
 
     def to(self,*args,**kwargs):
@@ -72,6 +76,11 @@ class RobomimicLowdimPolicy(BaseLowdimPolicy):
     
     def train_on_batch(self, batch, epoch, validate=False):
         nbatch = self.normalizer.normalize(batch)
+
+        # add noise
+        if self.add_noise:
+            nbatch['obs'] += torch.randn_like(nbatch['obs'], device=self.device)*self.noise_range
+
         robomimic_batch = {
             'obs': {self.obs_key: nbatch['obs']},
             'actions': nbatch['action']
