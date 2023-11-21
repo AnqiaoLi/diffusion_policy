@@ -9,7 +9,7 @@ checkpoint:
     mode: min
     monitor_key: val_loss
 dataloader:
-  batch_size: 1024
+  batch_size: 400
   num_workers: 1
   persistent_workers: false
   pin_memory: true
@@ -22,25 +22,26 @@ ema:
   power: 0.75
   update_after_step: 0
 exp_name: default
-horizon: 275
+horizon: 276
 keypoint_dim: 2
 keypoint_visible_rate: 1.0
 logging:
   group: null
   id: null
-  mode: disabled
-  # mode: online
-  name: train_diffusion_unet_lowdim_slipperness
+  # mode: disabled
+  mode: online
+  name: mstep_diffusion_random_push
   project: diffusion_policy_debug
+  entity: anqiaoli
   resume: true
   tags:
-  - train_diffusion_unet_lowdim
-  - slipperness
-  - default
+  - mstep
+  - random_push
+  - only_one_direction
 multi_run:
   run_dir: data/outputs/2023.01.16/20.10.02_train_diffusion_unet_lowdim_slipperness
   wandb_name_base: 2023.01.16-20.10.02_train_diffusion_unet_lowdim_slipperness
-n_action_steps: 250
+n_action_steps: 251
 n_latency_steps: 0
 n_obs_steps: 25
 name: train_diffusion_unet_lowdim
@@ -59,23 +60,24 @@ past_action_visible: false
 policy:
   _target_: diffusion_policy.policy.diffusion_unet_lowdim_policy.DiffusionUnetLowdimPolicy
   action_dim: 3
-  horizon: 275
+  horizon: 276
+  mstep_prediction: true
   model:
     _target_: diffusion_policy.model.diffusion.conditional_unet1d.ConditionalUnet1D
     mrollouts: true
-    horizon: 275
+    horizon: 276
     cond_predict_scale: true
     diffusion_step_embed_dim: 256
     down_dims:
     - 256
     - 512
     - 1024
-    global_cond_dim: 470
-    input_dim: 37
+    global_cond_dim: 1678
+    input_dim: 3
     kernel_size: 5
     local_cond_dim: null
     n_groups: 8
-  n_action_steps: 250
+  n_action_steps: 251
   n_obs_steps: 25
   noise_scheduler:
     _target_: diffusers.schedulers.scheduling_ddpm.DDPMScheduler
@@ -83,10 +85,10 @@ policy:
     beta_schedule: squaredcos_cap_v2
     beta_start: 0.0001
     clip_sample: true
-    num_train_timesteps: 10
+    num_train_timesteps: 500
     prediction_type: epsilon
     variance_type: fixed_small
-  num_inference_steps: 10
+  num_inference_steps: 50
   oa_step_convention: true
   obs_as_global_cond: true
   obs_as_local_cond: false
@@ -97,13 +99,13 @@ task:
   action_dim: 3
   dataset:
     _target_: diffusion_policy.dataset.random_push_mrollout_dataset.SlippernessLowdimDataset
-    horizon: 275
-    max_train_episodes: 90
-    pad_after: 7
-    pad_before: 1
+    horizon: 276
+    max_train_episodes: 50
+    pad_after: 0
+    pad_before: 0
     seed: 42
     val_ratio: 0.02
-    zarr_path: /home/anqiao/SP-DGDM/Data/traj_data_random_push_002_command/traj.zarr
+    zarr_path: /media/anqiao/My Passport/SP/Data/traj_data_random_push_003_command/traj.zarr
   env_runner:
     _target_: diffusion_policy.env_runner.pusht_keypoints_runner.PushTKeypointsRunner
     agent_keypoints: false
@@ -127,7 +129,7 @@ task:
   obs_dim: 34
 task_name: slipperness_lowdim
 training:
-  checkpoint_every: 50
+  checkpoint_every: 20
   debug: false
   device: cuda:0
   gradient_accumulate_every: 1
@@ -135,9 +137,10 @@ training:
   lr_warmup_steps: 500
   max_train_steps: null
   max_val_steps: null
-  num_epochs: 500
+  num_epochs: 100
   resume: false
-  rollout_every: 50
+  resume_checkpoint_dir: /media/anqiao/My Passport/SP-checkpoitns/2023.11.21/02.30.44_train_diffusion_unet_lowdim_slipperness_lowdim
+  rollout_every: 20
   sample_every: 5
   seed: 42
   tqdm_interval_sec: 1.0

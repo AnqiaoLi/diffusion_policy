@@ -102,7 +102,7 @@ class DiffusionUnetLowdimPolicy(BaseLowdimPolicy):
         return trajectory
 
 
-    def predict_action(self, obs_dict: Dict[str, torch.Tensor], torque_dict = None) -> Dict[str, torch.Tensor]:
+    def predict_action(self, obs_dict: Dict[str, torch.Tensor], commands_dict = None) -> Dict[str, torch.Tensor]:
         """
         obs_dict: must include "obs" key
         result: must include "action" key
@@ -112,7 +112,7 @@ class DiffusionUnetLowdimPolicy(BaseLowdimPolicy):
         assert 'past_action' not in obs_dict # not implemented yet
         nobs = self.normalizer['obs'].normalize(obs_dict['obs'])
         if  self.mstep_prediction:
-            ntorques = self.normalizer['torque'].normalize(torque_dict['torques'])
+            ncommands = self.normalizer['command'].normalize(commands_dict['command'])
         B, _, Do = nobs.shape
         To = self.n_obs_steps
         assert Do == self.obs_dim
@@ -137,7 +137,7 @@ class DiffusionUnetLowdimPolicy(BaseLowdimPolicy):
         elif self.obs_as_global_cond:
             # condition throught global feature
             if self.mstep_prediction:
-                global_cond = torch.concat([nobs[:,:To].reshape(nobs.shape[0], -1), ntorques[:,:T].reshape(nobs.shape[0], -1)], dim=1)
+                global_cond = torch.concat([nobs[:,:To].reshape(nobs.shape[0], -1), ncommands[:,:T].reshape(nobs.shape[0], -1)], dim=1)
             else:
                 global_cond = nobs[:,:To].reshape(nobs.shape[0], -1)
             shape = (B, T, Da)
@@ -200,7 +200,7 @@ class DiffusionUnetLowdimPolicy(BaseLowdimPolicy):
             nbatch['obs'] += torch.randn_like(nbatch['obs'], device=self.device)*self.noise_range
         obs = nbatch['obs']
         if self.mstep_prediction:
-            torque = nbatch['torque']
+            command = nbatch['command']
         action = nbatch['action']
 
         # handle different ways of passing observation
@@ -214,7 +214,7 @@ class DiffusionUnetLowdimPolicy(BaseLowdimPolicy):
         elif self.obs_as_global_cond:
             if self.mstep_prediction:
                 global_cond = torch.concat([obs[:,:self.n_obs_steps,:].reshape(obs.shape[0], -1), 
-                                            torque[:,:self.horizon].reshape(obs.shape[0], -1)], dim=1)
+                                            command[:,:self.horizon].reshape(obs.shape[0], -1)], dim=1)
             else:
                 global_cond = obs[:,:self.n_obs_steps,:].reshape(
                     obs.shape[0], -1)

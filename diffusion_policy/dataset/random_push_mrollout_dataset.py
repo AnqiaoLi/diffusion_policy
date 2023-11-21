@@ -20,7 +20,8 @@ class SlippernessLowdimDataset(BaseLowdimDataset):
             action_key='action',
             seed=42,
             val_ratio=0.0,
-            max_train_episodes=None
+            max_train_episodes=None,
+            n_obs_steps= 25,
             ):
         super().__init__()
         self.replay_buffer = ReplayBuffer.copy_from_path(
@@ -50,6 +51,7 @@ class SlippernessLowdimDataset(BaseLowdimDataset):
         self.horizon = horizon
         self.pad_before = pad_before
         self.pad_after = pad_after
+        self.n_obs_steps = n_obs_steps
 
     def get_validation_dataset(self):
         val_set = copy.copy(self)
@@ -81,6 +83,9 @@ class SlippernessLowdimDataset(BaseLowdimDataset):
             'command': sample[self.command_key],
             'action': sample[self.action_key], # T, D_a
         }
+        # normalize the predicted action to be relative to the current state
+        data['action'][:, 0:2] = data['action'][:, 0:2] - data['obs'][self.n_obs_steps-1, 0:2]
+        data['obs'] = data['obs'][:, 2:]
         return data
 
     def __getitem__(self, idx: int) -> Dict[str, torch.Tensor]:

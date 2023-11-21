@@ -19,6 +19,7 @@ import random
 import wandb
 import tqdm
 import shutil
+import matplotlib.pyplot as plt
 
 from diffusion_policy.common.pytorch_util import dict_apply, optimizer_to
 from diffusion_policy.workspace.base_workspace import BaseWorkspace
@@ -250,8 +251,8 @@ class TrainDiffusionUnetLowdimWorkspace(BaseWorkspace):
                         obs_dict = {'obs': batch['obs']}
                         gt_action = batch['action']
                         if cfg.policy.model.mrollouts:
-                            torques_dict = {'torques': batch['torque']}
-                            result = policy.predict_action(obs_dict, torques_dict)
+                            commands_dict = {'command': batch['command']}
+                            result = policy.predict_action(obs_dict, commands_dict=commands_dict)
                         else:
                             result = policy.predict_action(obs_dict)
                         if cfg.pred_action_steps_only:
@@ -264,6 +265,14 @@ class TrainDiffusionUnetLowdimWorkspace(BaseWorkspace):
                         mse = torch.nn.functional.mse_loss(pred_action, gt_action)
                         # log
                         step_log['train_action_mse_error'] = mse.item()
+                        # save the plot
+                        if cfg.policy.mstep_prediction:
+                            _ = plt.plot(pred_action[0, :, 0].cpu().tolist(), pred_action[0, :, 1].cpu().tolist())
+                            image = wandb.Image(plt)
+                            step_log['pred_image'] = wandb.log(
+                                    {"sampled_trajectory" : image})
+                            # clear the plot
+                            plt.clf()
                         # release RAM
                         del batch
                         del obs_dict
@@ -271,6 +280,7 @@ class TrainDiffusionUnetLowdimWorkspace(BaseWorkspace):
                         del result
                         del pred_action
                         del mse
+                        del image
                 
                 # checkpoint
                 if (self.epoch % cfg.training.checkpoint_every) == 0:
