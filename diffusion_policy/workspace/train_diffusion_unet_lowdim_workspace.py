@@ -20,6 +20,7 @@ import wandb
 import tqdm
 import shutil
 import matplotlib.pyplot as plt
+import copy
 
 from diffusion_policy.common.pytorch_util import dict_apply, optimizer_to
 from diffusion_policy.workspace.base_workspace import BaseWorkspace
@@ -80,7 +81,10 @@ class TrainDiffusionUnetLowdimWorkspace(BaseWorkspace):
         assert isinstance(dataset, BaseLowdimDataset)
         train_dataloader = DataLoader(dataset, **cfg.dataloader)
         if not cfg.training.resume:
-            normalizer = dataset.get_normalizer(range_eps=1e-10, mode="limits")
+            if cfg.policy.mstep_prediction:
+                normalizer = dataset.get_normalizer_mstep(range_eps=1e-10, mode="limits")
+            else:
+                normalizer = dataset.get_normalizer(range_eps=1e-10, mode="limits")
             self.model.set_normalizer(normalizer)
             if cfg.training.use_ema:
                 self.ema_model.set_normalizer(normalizer)
@@ -166,7 +170,7 @@ class TrainDiffusionUnetLowdimWorkspace(BaseWorkspace):
                         # device transfer
                         batch = dict_apply(batch, lambda x: x.to(device, non_blocking=True))
                         if train_sampling_batch is None:
-                            train_sampling_batch = batch
+                            train_sampling_batch = copy.deepcopy(batch)
 
                         # compute loss
                         raw_loss = self.model.compute_loss(batch)
@@ -204,7 +208,6 @@ class TrainDiffusionUnetLowdimWorkspace(BaseWorkspace):
                         if (cfg.training.max_train_steps is not None) \
                             and batch_idx >= (cfg.training.max_train_steps-1):
                             break
-                
                 # at the end of each epoch
                 # replace train_loss with epoch average
                 train_loss = np.mean(train_losses)
@@ -247,10 +250,11 @@ class TrainDiffusionUnetLowdimWorkspace(BaseWorkspace):
                 if (self.epoch % cfg.training.sample_every) == 0:
                     with torch.no_grad():
                         # sample trajectory from training set, and evaluate difference
-                        batch = train_sampling_batch
+                        batch = copy.deepcopy(train_sampling_batch)
                         obs_dict = {'obs': batch['obs']}
                         gt_action = batch['action']
                         if cfg.policy.model.mrollouts:
+                            gt_action[:, :, 0:2] = gt_action[:, :, 0:2] - batch['obs'][:, cfg.policy.n_obs_steps-1:cfg.policy.n_obs_steps, 0:2]
                             commands_dict = {'command': batch['command']}
                             result = policy.predict_action(obs_dict, commands_dict=commands_dict)
                         else:
@@ -267,7 +271,9 @@ class TrainDiffusionUnetLowdimWorkspace(BaseWorkspace):
                         step_log['train_action_mse_error'] = mse.item()
                         # save the plot
                         if cfg.policy.mstep_prediction:
-                            _ = plt.plot(pred_action[0, :, 0].cpu().tolist(), pred_action[0, :, 1].cpu().tolist())
+                            _ = plt.plot(pred_action[0, :, 0].cpu().tolist(), pred_action[0, :, 1].cpu().tolist(), label="pred")
+                            _ = plt.plot(gt_action[0, :, 0].cpu().tolist(), gt_action[0, :, 1].cpu().tolist(), label="gt")
+                            _ = plt.legend(loc="upper left")
                             image = wandb.Image(plt)
                             step_log['pred_image'] = wandb.log(
                                     {"sampled_trajectory" : image})

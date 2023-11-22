@@ -112,6 +112,7 @@ class DiffusionUnetLowdimPolicy(BaseLowdimPolicy):
         assert 'past_action' not in obs_dict # not implemented yet
         nobs = self.normalizer['obs'].normalize(obs_dict['obs'])
         if  self.mstep_prediction:
+            nobs = nobs[:, :, 2:]
             ncommands = self.normalizer['command'].normalize(commands_dict['command'])
         B, _, Do = nobs.shape
         To = self.n_obs_steps
@@ -192,9 +193,13 @@ class DiffusionUnetLowdimPolicy(BaseLowdimPolicy):
         self.normalizer.load_state_dict(normalizer.state_dict())
 
     def compute_loss(self, batch):
-        # normalize input
         assert 'valid_mask' not in batch
+        # normalize the predicted action to be relative to the current state
+        batch['action'][:, :, 0:2] = batch['action'][:, :, 0:2] - batch['obs'][:,self.n_obs_steps-1:self.n_obs_steps, 0:2]
+        # normalize input
         nbatch = self.normalizer.normalize(batch)
+        nbatch['obs'] = nbatch['obs'][:, :, 2:]
+
         # add noise
         if self.add_noise:
             nbatch['obs'] += torch.randn_like(nbatch['obs'], device=self.device)*self.noise_range

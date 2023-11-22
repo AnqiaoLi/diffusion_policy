@@ -48,6 +48,7 @@ class SlippernessLowdimDataset(BaseLowdimDataset):
         self.action_key = action_key
         self.command_key = command_key
         self.train_mask = train_mask
+        self.val_mask = val_mask
         self.horizon = horizon
         self.pad_before = pad_before
         self.pad_after = pad_after
@@ -60,13 +61,28 @@ class SlippernessLowdimDataset(BaseLowdimDataset):
             sequence_length=self.horizon,
             pad_before=self.pad_before, 
             pad_after=self.pad_after,
-            episode_mask=~self.train_mask
+            episode_mask=self.val_mask
             )
-        val_set.train_mask = ~self.train_mask
+        val_set.train_mask = self.val_mask
         return val_set
 
     def get_normalizer(self, mode='limits', **kwargs):
         data = self._sample_to_data(self.replay_buffer)
+        normalizer = LinearNormalizer()
+        normalizer.fit(data=data, last_n_dims=1, mode=mode, **kwargs)
+        return normalizer
+    
+    def get_normalizer_mstep(self, mode='limits', **kwargs):
+        data = self._sample_to_data(self.replay_buffer)
+
+        sample_action_list = torch.zeros((0, 3))
+        for idx in range(len(self.sampler)):
+            sample = self.sampler.sample_sequence(idx)
+            sample_action = sample[self.action_key].copy()
+            sample_action[:, 0:2] = sample_action[:, 0:2] - sample[self.state_key][self.n_obs_steps-1:self.n_obs_steps, 0:2]
+            sample_action_list = np.concatenate((sample_action_list, sample_action), axis=0)
+        data['action'] = sample_action_list
+
         normalizer = LinearNormalizer()
         normalizer.fit(data=data, last_n_dims=1, mode=mode, **kwargs)
         return normalizer
@@ -83,14 +99,14 @@ class SlippernessLowdimDataset(BaseLowdimDataset):
             'command': sample[self.command_key],
             'action': sample[self.action_key], # T, D_a
         }
+        # TODO: Better Normalization for x, y
         # normalize the predicted action to be relative to the current state
-        data['action'][:, 0:2] = data['action'][:, 0:2] - data['obs'][self.n_obs_steps-1, 0:2]
-        data['obs'] = data['obs'][:, 2:]
+        # data['action'][:, 0:2] = data['action'][:, 0:2] - data['obs'][self.n_obs_steps-1, 0:2]
+        # data['obs'] = data['obs'][:, 2:]
         return data
 
     def __getitem__(self, idx: int) -> Dict[str, torch.Tensor]:
         sample = self.sampler.sample_sequence(idx)
         data = self._sample_to_data(sample)
-
         torch_data = dict_apply(data, torch.from_numpy)
         return torch_data
