@@ -8,7 +8,7 @@ from diffusion_policy.common.sampler import (
     SequenceSampler, get_val_mask, downsample_mask)
 from diffusion_policy.model.common.normalizer import LinearNormalizer
 from diffusion_policy.dataset.base_dataset import BaseLowdimDataset
-
+import tqdm
 class SlippernessLowdimDataset(BaseLowdimDataset):
     def __init__(self, 
             zarr_path, 
@@ -76,7 +76,7 @@ class SlippernessLowdimDataset(BaseLowdimDataset):
         data = self._sample_to_data(self.replay_buffer)
 
         sample_action_list = torch.zeros((0, 3))
-        for idx in range(len(self.sampler)):
+        for idx in tqdm.tqdm(range(len(self.sampler)), leave=False, mininterval=1, desc='get_normalizer_mstep'):
             sample = self.sampler.sample_sequence(idx)
             sample_action = sample[self.action_key].copy()
             sample_action[:, 0:2] = sample_action[:, 0:2] - sample[self.state_key][self.n_obs_steps-1:self.n_obs_steps, 0:2]
