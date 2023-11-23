@@ -100,13 +100,13 @@ class Forward_Dynamics_Model(nn.Module):
 
         delata_coordinate_traj = self.coordinate_prediction.architecture(encoded_prediction)
         delata_coordinate_traj = delata_coordinate_traj.view(traj_len, n_sample, self.prediction_config["coordinate"]["output"])
-
-        coordinate_traj = torch.zeros(traj_len, n_sample, self.prediction_config["coordinate"]["output"]).to(self.device)
-        for i in range(traj_len):
-            if i == 0:
-                coordinate_traj[i, :, :] = delata_coordinate_traj[i, :, :]
-            else:
-                coordinate_traj[i, :, :] = coordinate_traj[i - 1, :, :] + delata_coordinate_traj[i, :, :]
+        coordinate_traj = delata_coordinate_traj.clone()
+        # coordinate_traj = torch.zeros(traj_len, n_sample, self.prediction_config["coordinate"]["output"]).to(self.device)
+        # for i in range(traj_len):
+        #     if i == 0:
+        #         coordinate_traj[i, :, :] = delata_coordinate_traj[i, :, :]
+        #     else:
+        #         coordinate_traj[i, :, :] = coordinate_traj[i - 1, :, :] + delata_coordinate_traj[i, :, :]
 
         if training:
             # return "device" torch tensor
