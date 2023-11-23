@@ -194,19 +194,21 @@ class DiffusionUnetLowdimPolicy(BaseLowdimPolicy):
 
     def compute_loss(self, batch):
         assert 'valid_mask' not in batch
-        # normalize the predicted action to be relative to the current state
-        batch['action'][:, :, 0:2] = batch['action'][:, :, 0:2] - batch['obs'][:,self.n_obs_steps-1:self.n_obs_steps, 0:2]
+        if self.mstep_prediction:
+            # normalize the predicted action to be relative to the current state
+            batch['action'][:, :, 0:2] = batch['action'][:, :, 0:2] - batch['obs'][:,self.n_obs_steps-1:self.n_obs_steps, 0:2]
         # normalize input
         nbatch = self.normalizer.normalize(batch)
-        nbatch['obs'] = nbatch['obs'][:, :, 2:]
+
+        if self.mstep_prediction:
+            nbatch['obs'] = nbatch['obs'][:, :, 2:]
+            command = nbatch['command']
+        obs = nbatch['obs']
+        action = nbatch['action']
 
         # add noise
         if self.add_noise:
             nbatch['obs'] += torch.randn_like(nbatch['obs'], device=self.device)*self.noise_range
-        obs = nbatch['obs']
-        if self.mstep_prediction:
-            command = nbatch['command']
-        action = nbatch['action']
 
         # handle different ways of passing observation
         local_cond = None

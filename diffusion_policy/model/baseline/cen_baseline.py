@@ -14,9 +14,10 @@ class CEN(nn.Module):
     def __init__(self,
                  horizon:int = 16,
                  obs_dim: int = 80,
-                 action_dim:int = 37):
+                 action_dim:int = 37,
+                 config_path = None):
         super().__init__()
-        with open('/home/anqiao/tmp/diffusion_policy/diffusion_policy/model/baseline/cen_config.yaml', 'r') as f:
+        with open(config_path, 'r') as f:
             cfg = YAML().load(f)
         self.fdm = Forward_Dynamics_Model(state_encoding_config=cfg['architecture']['state_encoder'],
                                    command_encoding_config=cfg['architecture']['command_encoder'],
@@ -47,16 +48,22 @@ class CEN(nn.Module):
         self.action_dim = action_dim
         self.training = True
     
-    def forward(self, x):
+    def forward(self, x, cond=None):
         '''
             x : [ batch_size x obs_step x obs_dim ]
 
             returns:
             out : [ batch_size x out_channels x action_dim ]
         '''
-        assert x.shape[1] == self.horizon and x.shape[2] == self.obs_dim
-        state = x[:, :, :68].reshape(-1, self.horizon*68)
-        command = torch.moveaxis(x[:, :, 68:], 1, 0) # (traj_len, n_sample, single_command_dim)
+        # assert x.shape[1] == self.horizon and x.shape[2] == self.obs_dim
+        bs = x.shape[0]
+        if cond is not None:
+            assert cond.shape[1] == self.horizon
+            state = x.reshape(bs, -1)
+            command = torch.moveaxis(cond, 1, 0) # (traj_len, n_sample, single_command_dim
+        else:
+            state = x[:, :, :68].reshape(-1, self.horizon*68)
+            command = torch.moveaxis(x[:, :, 68:], 1, 0) # (traj_len, n_sample, single_command_dim)
 
         _, out = self.fdm(state, command, training = True) # training is only used to output a tensor
 
@@ -64,9 +71,21 @@ class CEN(nn.Module):
         return out
 
 if __name__ == "__main__":
-    model = CEN().to('cuda')
-    x = torch.zeros((2, 16, 80)).to('cuda')
-    o = model(x)
+    # model = CEN().to('cuda')
+    # x = torch.zeros((2, 16, 80)).to('cuda')
+    # o = model(x)
+    # print(o.shape)
+
+    model = CEN(horizon=276, config_path='/home/anqiao/tmp/diffusion_policy/diffusion_policy/model/baseline/cen_config_mstep.yaml').to('cuda')
+    model.eval()
+    x = torch.zeros((10, 25, 34)).to('cuda')
+    command = torch.zeros((10, 276, 3)).to('cuda')
+    o = model(x, cond=command)
+
+    idx = torch.randperm(x.shape[0])
+    x_shuffled = x[idx]
+    o_shuffled = o[idx]
+    o_2 = model(x_shuffled, cond=command)
     print(o.shape)
     # with open('/home/anqiao/tmp/diffusion_policy/diffusion_policy/model/baseline/cen_config.yaml', 'r') as f:
     #     cfg = YAML().load(f)

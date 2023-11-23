@@ -275,8 +275,7 @@ class TrainDiffusionUnetLowdimWorkspace(BaseWorkspace):
                             _ = plt.plot(gt_action[0, :, 0].cpu().tolist(), gt_action[0, :, 1].cpu().tolist(), label="gt")
                             _ = plt.legend(loc="upper left")
                             image = wandb.Image(plt)
-                            step_log['pred_image'] = wandb.log(
-                                    {"sampled_trajectory" : image})
+                            step_log['sampled_trajectory'] = image
                             # clear the plot
                             plt.clf()
                         # release RAM

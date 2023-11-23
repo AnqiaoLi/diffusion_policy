@@ -19,6 +19,8 @@ import random
 import wandb
 import tqdm
 import shutil
+import matplotlib.pyplot as plt
+import copy
 
 from diffusion_policy.common.pytorch_util import dict_apply, optimizer_to
 from diffusion_policy.workspace.base_workspace import BaseWorkspace
@@ -79,7 +81,11 @@ class TrainCNNLowdimWorkspace(BaseWorkspace):
         assert isinstance(dataset, BaseLowdimDataset)
         train_dataloader = DataLoader(dataset, **cfg.dataloader)
         if not cfg.training.resume:
-            normalizer = dataset.get_normalizer(range_eps=1e-10, mode="limits")
+            if cfg.policy.mstep_prediction:
+                normalizer = dataset.get_normalizer_mstep(range_eps=1e-10, mode="limits")
+            else:
+                normalizer = dataset.get_normalizer(range_eps=1e-10, mode="limits")
+
             self.model.set_normalizer(normalizer)
             if cfg.training.use_ema:
                 self.ema_model.set_normalizer(normalizer)
@@ -165,7 +171,7 @@ class TrainCNNLowdimWorkspace(BaseWorkspace):
                         # device transfer
                         batch = dict_apply(batch, lambda x: x.to(device, non_blocking=True))
                         if train_sampling_batch is None:
-                            train_sampling_batch = batch
+                            train_sampling_batch = copy.deepcopy(batch)
 
                         # compute loss
                         raw_loss = self.model.compute_loss(batch)
@@ -224,7 +230,7 @@ class TrainCNNLowdimWorkspace(BaseWorkspace):
                 policy = self.model
                 if cfg.training.use_ema:
                     policy = self.ema_model
-                policy.eval()
+                # policy.eval()
 
                 # run rollout
         ###################### cite 
@@ -257,10 +263,15 @@ class TrainCNNLowdimWorkspace(BaseWorkspace):
                 if (self.epoch % cfg.training.sample_every) == 0:
                     with torch.no_grad():
                         # sample trajectory from training set, and evaluate difference
-                        batch = train_sampling_batch
-                        obs_dict = {'obs': batch['obs']}
+                        batch = copy.deepcopy(train_sampling_batch)
                         gt_action = batch['action']
-                        result = policy.predict_action(obs_dict)
+                        obs_dict = {'obs': batch['obs']}
+                        if cfg.policy.mstep_prediction:
+                            gt_action[:, :, 0:2] = gt_action[:, :, 0:2] - batch['obs'][:, cfg.policy.n_obs_steps-1:cfg.policy.n_obs_steps, 0:2]
+                            commands_dict = {'command': batch['command']}
+                            result = policy.predict_action(obs_dict, commands_dict=commands_dict)
+                        else:
+                            result = policy.predict_action(obs_dict)
                         if cfg.pred_action_steps_only:
                             pred_action = result['action']
                             start = cfg.n_obs_steps - 1
@@ -272,7 +283,15 @@ class TrainCNNLowdimWorkspace(BaseWorkspace):
                         mse = torch.nn.functional.mse_loss(pred_action, gt_action)
                         # log
                         step_log['train_action_mse_error'] = mse.item()
-                        # release RAM
+                        # save the plot
+                        if cfg.policy.mstep_prediction:
+                            _ = plt.plot(pred_action[0, :, 0].cpu().tolist(), pred_action[0, :, 1].cpu().tolist(), label="pred")
+                            _ = plt.plot(gt_action[0, :, 0].cpu().tolist(), gt_action[0, :, 1].cpu().tolist(), label="gt")
+                            _ = plt.legend(loc="upper left")
+                            image = wandb.Image(plt)
+                            step_log['sampled_trajectory'] = image
+                            # clear the plot
+                            plt.clf()
                         del batch
                         del obs_dict
                         del gt_action

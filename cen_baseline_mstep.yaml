@@ -1,5 +1,5 @@
 _target_: diffusion_policy.workspace.train_cnn_lowdim_workspace.TrainCNNLowdimWorkspace
-action_dim: 37
+action_dim: 3
 checkpoint:
   save_last_ckpt: true
   save_last_snapshot: false
@@ -13,7 +13,7 @@ dataloader:
   num_workers: 1
   persistent_workers: false
   pin_memory: true
-  shuffle: true
+  shuffle: false
 ema:
   _target_: diffusion_policy.model.diffusion.ema_model.EMAModel
   inv_gamma: 1.0
@@ -22,7 +22,7 @@ ema:
   power: 0.75
   update_after_step: 0
 exp_name: default
-horizon: 16
+horizon: 276
 keypoint_dim: 2
 keypoint_visible_rate: 1.0
 logging:
@@ -30,60 +30,60 @@ logging:
   id: null
   # mode: disabled
   mode: online
-  name: baseline_cen_walking
+  name: cen_mstep_random_push
   project: diffusion_policy_debug
   entity: anqiaoli
   resume: false
   tags:
   - baseline
   - cen
-  - walking
+  - mstep
 multi_run:
   run_dir: data/outputs/2023.01.16/20.10.02_train_diffusion_unet_lowdim_slipperness
   wandb_name_base: 2023.01.16-20.10.02_train_diffusion_unet_lowdim_slipperness
-n_action_steps: 1
+n_action_steps: 251
 n_latency_steps: 0
-n_obs_steps: 16
+n_obs_steps: 25
 name: train_diffusion_unet_lowdim
 obs_as_global_cond: true
 obs_as_local_cond: false
-obs_dim: 80
+obs_dim: 34
 optimizer:
   _target_: torch.optim.AdamW
   betas:
   - 0.95
   - 0.999
   eps: 1.0e-08
-  lr: 0.0001
+  lr: 0.001
   weight_decay: 1.0e-06
 past_action_visible: false
 policy:
   _target_: diffusion_policy.policy.cnn_lowdim_policy.CNNLowdimPolicy
-  action_dim: 37
-  horizon: 16
+  action_dim: 3
+  horizon: 276
   model:
     _target_: diffusion_policy.model.baseline.cen_baseline.CEN
-    horizon: 16
-    obs_dim: 80
-    action_dim: 37
-    config_path: /home/anqiao/tmp/diffusion_policy/diffusion_policy/model/baseline/cen_config.yaml
-  n_action_steps: 1
-  n_obs_steps: 16
-  obs_dim: 80
-  mstep_prediction: false
+    horizon: 276
+    obs_dim: 34
+    action_dim: 3
+    config_path: /home/anqiao/tmp/diffusion_policy/diffusion_policy/model/baseline/cen_config_mstep.yaml
+  n_action_steps: 251
+  n_obs_steps: 25
+  obs_dim: 34
+  mstep_prediction: true
 pred_action_steps_only: false
 task:
-  action_dim: 37
+  action_dim: 3
   dataset:
-    _target_: diffusion_policy.dataset.slipperness_dataset.SlippernessLowdimDataset
+    _target_: diffusion_policy.dataset.random_push_mrollout_dataset.SlippernessLowdimDataset
     # _target_: diffusion_policy.dataset.pyramid_dataset.PyramidSupervideHorizonDataset
-    horizon: 16
+    horizon: 276
     max_train_episodes: 90
     pad_after: 0
     pad_before: 0
     seed: 42
-    val_ratio: 0.1
-    zarr_path: /media/anqiao/My Passport/SP/Data/traj_data_slipperiness_001/traj.zarr
+    val_ratio: 0.01
+    zarr_path: /media/anqiao/My Passport/SP/Data/traj_data_random_push_003_command/traj.zarr
     # zarr_path: /media/anqiao/My Passport/SP/Data/traj_data_pyramid_terrain/traj_expand_obs_dim_supervised_horion=1+5.zarr
   env_runner:
     _target_: diffusion_policy.env_runner.pusht_keypoints_runner.PushTKeypointsRunner
@@ -95,7 +95,7 @@ task:
     n_action_steps: 1
     n_envs: null
     n_latency_steps: 0
-    n_obs_steps: 16
+    n_obs_steps: 25
     n_test: 50
     n_test_vis: 4
     n_train: 6
@@ -104,11 +104,11 @@ task:
     test_start_seed: 100000
     train_start_seed: 0
   keypoint_dim: 2
-  name: slipperness
-  obs_dim: 80
-task_name: slipperness_lowdim
+  name: cen_mstep
+  obs_dim: 34
+task_name: cen_mstep_random_push
 training:
-  checkpoint_every: 20
+  checkpoint_every: 50
   debug: false
   device: cuda:0
   gradient_accumulate_every: 1
@@ -119,8 +119,8 @@ training:
   num_epochs: 500
   resume: false
   resume_checkpoint_dir: None
-  rollout_every: 50
-  sample_every: 1
+  rollout_every: 5
+  sample_every: 5
   seed: 42
   tqdm_interval_sec: 1.0
   use_ema: false
