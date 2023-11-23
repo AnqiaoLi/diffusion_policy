@@ -18,7 +18,9 @@ class CNNLowdimPolicy(BaseLowdimPolicy):
             action_dim, 
             n_action_steps, 
             n_obs_steps,
-            mstep_prediction=False):
+            mstep_prediction=False,
+            pred_action_steps_only = False,
+            normalize_action=True):
         super().__init__()
         self.model = model
         self.normalizer = LinearNormalizer()
@@ -27,7 +29,9 @@ class CNNLowdimPolicy(BaseLowdimPolicy):
         self.action_dim = action_dim
         self.n_action_steps = n_action_steps
         self.n_obs_steps = n_obs_steps
-        self.mstep_prediction = mstep_prediction    
+        self.mstep_prediction = mstep_prediction  
+        self.pred_action_steps_only = pred_action_steps_only  
+        self.normalize_action = normalize_action
 
     
     # ========= inference  ============
@@ -54,10 +58,16 @@ class CNNLowdimPolicy(BaseLowdimPolicy):
             naction_pred = self.model(nobs)
 
         # unnormalize prediction
-        action_pred = self.normalizer['action'].unnormalize(naction_pred)
-        
+        if self.normalize_action:
+            action_pred = self.normalizer['action'].unnormalize(naction_pred)
+        else:
+            action_pred = naction_pred
+        if self.pred_action_steps_only:
+            action = action_pred[:, -self.n_action_steps:]
+        else:
+            action = action_pred
         result = {
-            'action': action_pred,
+            'action': action,
             'action_pred': action_pred
         }
 
@@ -78,9 +88,40 @@ class CNNLowdimPolicy(BaseLowdimPolicy):
         if self.mstep_prediction:
             nbatch['obs'] = nbatch['obs'][:, :, 2:]
             obs = nbatch['obs'][:, :self.n_obs_steps]
-            action_pred = self.model(obs, cond = nbatch['command'])
+            naction_pred = self.model(obs, cond = nbatch['command'])
         else:
-            action_pred = self.model(nbatch['obs'])
+            naction_pred = self.model(nbatch['obs'])
         
-        loss = F.mse_loss(action_pred, nbatch['action'])
+        if not self.normalize_action:
+            action_pred = self.normalizer['action'].unnormalize(naction_pred)
+            gt = batch['action']
+        else:
+            action_pred = naction_pred
+            gt = nbatch['action']
+
+        if self.pred_action_steps_only:
+            action_pred = action_pred[:, -self.n_action_steps:]
+            gt = gt[:, -self.n_action_steps:]
+
+        loss = F.mse_loss(action_pred, gt)
+        debug = False
+        if debug:
+            self.plot_debug(naction_pred, nbatch, i = 10)
         return loss
+    
+    def plot_debug(self, action_pred, nbatch, i=0):
+        import matplotlib.pyplot as plt
+            
+        plt.plot(action_pred.detach().cpu().numpy()[i, :, 0], action_pred.detach().cpu().numpy()[i, :, 1], label='npred')
+        plt.plot(nbatch['action'].detach().cpu().numpy()[i, :, 0], nbatch['action'].detach().cpu().numpy()[i, :, 1], label='ngt')
+        plt.legend()
+        plt.show()
+        # second figure
+        action_pred_unnorm = self.normalizer['action'].unnormalize(action_pred)
+        gt = self.normalizer['action'].unnormalize(nbatch['action'])
+        plt.plot(action_pred_unnorm.detach().cpu().numpy()[i, :, 0], action_pred_unnorm.detach().cpu().numpy()[i, :, 1], label='pred')
+        plt.plot(gt.detach().cpu().numpy()[i, :, 0], gt.detach().cpu().numpy()[i, :, 1], label='gt')
+        plt.legend()
+        plt.show()  
+
+

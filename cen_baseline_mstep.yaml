@@ -71,6 +71,8 @@ policy:
   n_obs_steps: 25
   obs_dim: 34
   mstep_prediction: true
+  pred_action_steps_only: true
+  normalize_action: false
 pred_action_steps_only: false
 task:
   action_dim: 3
