@@ -66,26 +66,15 @@ class SlippernessLowdimDataset(BaseLowdimDataset):
         val_set.train_mask = self.val_mask
         return val_set
 
-    def get_normalizer(self, mode='limits', **kwargs):
-        data = self._sample_to_data(self.replay_buffer)
+    def get_normalizer(self, mode='limits', offset_action_with_obs = False, **kwargs):
+        if offset_action_with_obs:
+            data = self._sample_to_data(self.replay_buffer, expand_action=True)
+        else:
+            data = self._sample_to_data(self.replay_buffer)
         normalizer = LinearNormalizer()
         normalizer.fit(data=data, last_n_dims=1, mode=mode, **kwargs)
         return normalizer
     
-    def get_normalizer_mstep(self, mode='limits', **kwargs):
-        data = self._sample_to_data(self.replay_buffer)
-
-        sample_action_list = torch.zeros((0, 3))
-        for idx in tqdm.tqdm(range(len(self.sampler)), leave=False, mininterval=1, desc='get_normalizer_mstep'):
-            sample = self.sampler.sample_sequence(idx)
-            sample_action = sample[self.action_key].copy()
-            sample_action[:, 0:2] = sample_action[:, 0:2] - sample[self.state_key][self.n_obs_steps-1:self.n_obs_steps, 0:2]
-            sample_action_list = np.concatenate((sample_action_list, sample_action), axis=0)
-        data['action'] = sample_action_list
-
-        normalizer = LinearNormalizer()
-        normalizer.fit(data=data, last_n_dims=1, mode=mode, **kwargs)
-        return normalizer
 
     def get_all_actions(self) -> torch.Tensor:
         return torch.from_numpy(self.replay_buffer[self.action_key])
@@ -93,17 +82,34 @@ class SlippernessLowdimDataset(BaseLowdimDataset):
     def __len__(self) -> int:
         return len(self.sampler)
 
-    def _sample_to_data(self, sample):
-        data = {
+    def _sample_to_data(self, sample, expand_action=False):
+        if expand_action:
+            data = {
+            'obs': sample[self.state_key], # T, D_o
+            'command': sample[self.command_key],
+            'action': self.expand_with_action_step(sample), # T, D_a
+            }
+        else:
+            data = {
             'obs': sample[self.state_key], # T, D_o
             'command': sample[self.command_key],
             'action': sample[self.action_key], # T, D_a
-        }
-        # TODO: Better Normalization for x, y
-        # normalize the predicted action to be relative to the current state
-        # data['action'][:, 0:2] = data['action'][:, 0:2] - data['obs'][self.n_obs_steps-1, 0:2]
-        # data['obs'] = data['obs'][:, 2:]
+            }
         return data
+
+    def expand_with_action_step(self, sample):
+        """ Expand the action to (n_sample, horizon, D_a), then offset with respect to the last observation. 
+            This funciton is only used when normalizing the action"""
+        # check if all the indices are with the same length
+        buffer_start_idx, buffer_end_idx, _, _ = self.sampler.indices.T
+        assert ((buffer_end_idx - buffer_start_idx) == 276).all()
+        # expand action
+        indices_buffer = buffer_start_idx[:, None] + np.arange(self.horizon)
+        sample_action = sample[self.action_key][indices_buffer]
+        # normalize with respect to the last observation
+        sample_action[:, :, 0:2] = sample_action[:, :, 0:2] - sample[self.state_key][buffer_start_idx+self.n_obs_steps-1,None, 0:2]
+        sample_action = sample_action.reshape(-1, sample_action.shape[-1])
+        return sample_action
 
     def __getitem__(self, idx: int) -> Dict[str, torch.Tensor]:
         sample = self.sampler.sample_sequence(idx)

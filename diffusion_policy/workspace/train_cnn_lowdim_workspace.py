@@ -81,11 +81,7 @@ class TrainCNNLowdimWorkspace(BaseWorkspace):
         assert isinstance(dataset, BaseLowdimDataset)
         train_dataloader = DataLoader(dataset, **cfg.dataloader)
         if not cfg.training.resume:
-            if cfg.policy.mstep_prediction:
-                normalizer = dataset.get_normalizer_mstep(range_eps=1e-10, mode="limits")
-            else:
-                normalizer = dataset.get_normalizer(range_eps=1e-10, mode="limits")
-
+            normalizer = dataset.get_normalizer(range_eps=1e-10, mode="limits", offset_action_with_obs = cfg.policy.mstep_prediction)
             self.model.set_normalizer(normalizer)
             if cfg.training.use_ema:
                 self.ema_model.set_normalizer(normalizer)
