@@ -92,18 +92,16 @@ class CNNLowdimPolicy(BaseLowdimPolicy):
         else:
             naction_pred = self.model(nbatch['obs'])
         
-        if not self.normalize_action:
-            action_pred = self.normalizer['action'].unnormalize(naction_pred)
-            gt = batch['action']
-        else:
-            action_pred = naction_pred
+        if self.normalize_action:
             gt = nbatch['action']
+        else:
+            gt = batch['action']
 
         if self.pred_action_steps_only:
-            action_pred = action_pred[:, -self.n_action_steps:]
+            naction_pred = naction_pred[:, -self.n_action_steps:]
             gt = gt[:, -self.n_action_steps:]
 
-        loss = F.mse_loss(action_pred, gt)
+        loss = F.mse_loss(naction_pred, gt)
         debug = False
         if debug:
             self.plot_debug(naction_pred, nbatch, i = 10)
