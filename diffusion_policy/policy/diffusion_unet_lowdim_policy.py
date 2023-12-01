@@ -29,6 +29,7 @@ class DiffusionUnetLowdimPolicy(BaseLowdimPolicy):
             mstep_prediction = False,
             add_noise = False,
             noise_range = 0.0,
+            history_consistency = 10,
             # parameters passed to step
             **kwargs):
         super().__init__()
@@ -57,6 +58,7 @@ class DiffusionUnetLowdimPolicy(BaseLowdimPolicy):
         self.mstep_prediction = mstep_prediction
         self.add_noise = add_noise
         self.noise_range = noise_range
+        self.history_cosistency = history_consistency
         self.kwargs = kwargs
 
         if num_inference_steps is None:
@@ -282,7 +284,11 @@ class DiffusionUnetLowdimPolicy(BaseLowdimPolicy):
         else:
             raise ValueError(f"Unsupported prediction type {pred_type}")
 
+        weights = torch.ones_like(pred, dtype=torch.float32)
+        weights[:, :self.n_obs_steps] *= self.history_cosistency  # Increase the weights for the first self.n_obs_steps horizon
+
         loss = F.mse_loss(pred, target, reduction='none')
+        loss = loss * weights
         loss = loss * loss_mask.type(loss.dtype)
         loss = reduce(loss, 'b ... -> b (...)', 'mean')
         loss = loss.mean()

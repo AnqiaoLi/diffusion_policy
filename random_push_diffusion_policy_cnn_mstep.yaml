@@ -92,6 +92,7 @@ policy:
   oa_step_convention: true
   obs_as_global_cond: true
   obs_as_local_cond: false
+  history_consistency: 1.0
   obs_dim: 34
   pred_action_steps_only: false
 pred_action_steps_only: false
