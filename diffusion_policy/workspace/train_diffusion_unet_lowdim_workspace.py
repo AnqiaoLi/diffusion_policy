@@ -208,6 +208,7 @@ class TrainDiffusionUnetLowdimWorkspace(BaseWorkspace):
                         if (cfg.training.max_train_steps is not None) \
                             and batch_idx >= (cfg.training.max_train_steps-1):
                             break
+                        # break
                 # at the end of each epoch
                 # replace train_loss with epoch average
                 train_loss = np.mean(train_losses)
@@ -346,10 +347,11 @@ class TrainDiffusionUnetLowdimWorkspace(BaseWorkspace):
         result = self.model.predict_action(obs_dict, commands_dict=commands_dict)
         gt_action = batch['action'][rand_idx]
         pred_action = result['action_pred']
+        rand_num = len(rand_idx)
         
         for i, idx in enumerate(rand_idx):
             for sample_idx in range(sample_num):
-                plt.plot(pred_action[i*sample_num + sample_idx, :, 0].cpu().tolist(), pred_action[i*sample_num + sample_idx, :, 1].cpu().tolist())
+                plt.plot(pred_action[sample_idx*rand_num + i, :, 0].cpu().tolist(), pred_action[sample_idx*rand_num + i, :, 1].cpu().tolist())
             plt.plot(gt_action[i, :, 0].cpu().tolist(), gt_action[i, :, 1].cpu().tolist(), label="gt", linestyle='--')
             plt.legend(loc="upper left")
 
