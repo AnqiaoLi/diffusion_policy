@@ -10,6 +10,8 @@ from diffusion_policy.policy.base_lowdim_policy import BaseLowdimPolicy
 from diffusion_policy.model.diffusion.conditional_unet1d import ConditionalUnet1D
 from diffusion_policy.model.diffusion.mask_generator import LowdimMaskGenerator
 
+import matplotlib.pyplot as plt
+import numpy as np
 class DiffusionUnetLowdimPolicy(BaseLowdimPolicy):
     def __init__(self, 
             model: ConditionalUnet1D,
@@ -80,8 +82,11 @@ class DiffusionUnetLowdimPolicy(BaseLowdimPolicy):
     
         # set step values
         scheduler.set_timesteps(self.num_inference_steps)
+        save_fancy_image = False
+        if save_fancy_image:
+            colors = np.linspace(0, 1, trajectory.shape[1])
 
-        for t in scheduler.timesteps:
+        for idx, t in enumerate(scheduler.timesteps):
             # 1. apply conditioning
             trajectory[condition_mask] = condition_data[condition_mask]
 
@@ -95,7 +100,12 @@ class DiffusionUnetLowdimPolicy(BaseLowdimPolicy):
                 generator=generator,
                 **kwargs
                 ).prev_sample
-        
+            if save_fancy_image:
+                plt.scatter(trajectory[0, :, 0].detach().cpu().numpy(), trajectory[0, :, 1].detach().cpu().numpy(),c = colors,cmap='viridis', s=2)
+                plt.ylim(-1, 0.5)
+                plt.xlim(-1.25, 1)
+                plt.savefig('/home/anqiao/SP-DGDM/videos/diffusion_step_image/{:04d}.png'.format(idx))
+                plt.clf()
         # finally make sure conditioning is enforced
         trajectory[condition_mask] = condition_data[condition_mask]        
 
@@ -112,7 +122,7 @@ class DiffusionUnetLowdimPolicy(BaseLowdimPolicy):
         assert 'past_action' not in obs_dict # not implemented yet
         nobs = self.normalizer['obs'].normalize(obs_dict['obs'])
         if  self.mstep_prediction:
-            nobs = nobs[:, :, 2:]
+            # nobs = nobs[:, :, 2:]
             ncommands = self.normalizer['command'].normalize(commands_dict['command'])
         B, _, Do = nobs.shape
         To = self.n_obs_steps
@@ -194,14 +204,14 @@ class DiffusionUnetLowdimPolicy(BaseLowdimPolicy):
 
     def compute_loss(self, batch):
         assert 'valid_mask' not in batch
-        if self.mstep_prediction:
-            # normalize the predicted action to be relative to the current state
-            batch['action'][:, :, 0:2] = batch['action'][:, :, 0:2] - batch['obs'][:,self.n_obs_steps-1:self.n_obs_steps, 0:2]
+        # if self.mstep_prediction:
+        #     # normalize the predicted action to be relative to the current state
+        #     batch['action'][:, :, 0:2] = batch['action'][:, :, 0:2] - batch['obs'][:,self.n_obs_steps-1:self.n_obs_steps, 0:2]
         # normalize input
         nbatch = self.normalizer.normalize(batch)
 
         if self.mstep_prediction:
-            nbatch['obs'] = nbatch['obs'][:, :, 2:]
+            # nbatch['obs'] = nbatch['obs'][:, :, 2:]
             command = nbatch['command']
         obs = nbatch['obs']
         action = nbatch['action']

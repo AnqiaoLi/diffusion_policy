@@ -98,14 +98,16 @@ pred_action_steps_only: false
 task:
   action_dim: 3
   dataset:
-    _target_: diffusion_policy.dataset.random_push_mrollout_dataset.SlippernessLowdimDataset
+    _target_: diffusion_policy.dataset.mstep_prediction_dataset.SlippernessLowdimDataset
     horizon: 276
     max_train_episodes: 50
     pad_after: 0
     pad_before: 0
     seed: 42
     val_ratio: 0.02
-    zarr_path: /media/anqiao/My Passport/SP/Data/traj_data_random_push_003_command/traj.zarr
+    offset_action_type: last_obs
+    # zarr_path: /media/anqiao/My Passport/SP/Data/traj_data_pyramid_terrain_004_command/traj.zarr
+    zarr_path: /media/anqiao/My Passport/SP/Data/traj_data_random_push_004_quat/traj.zarr
   env_runner:
     _target_: diffusion_policy.env_runner.pusht_keypoints_runner.PushTKeypointsRunner
     agent_keypoints: false
@@ -139,9 +141,10 @@ training:
   max_val_steps: null
   num_epochs: 100
   resume: false
-  resume_checkpoint_dir: /media/anqiao/My Passport/SP-checkpoitns/2023.11.21/02.30.44_train_diffusion_unet_lowdim_slipperness_lowdim
+  resume_checkpoint_dir: /media/anqiao/My Passport/SP-checkpoitns/13.14.38_train_diffusion_unet_lowdim_slipperness_lowdim
+  # resume_checkpoint_dir: /media/anqiao/My Passport/SP-checkpoitns/01.07.10_train_diffusion_unet_lowdim_slipperness_lowdim
   rollout_every: 20
-  sample_every: 5
+  sample_every: 20
   seed: 42
   tqdm_interval_sec: 1.0
   use_ema: true

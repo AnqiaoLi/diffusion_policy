@@ -61,6 +61,8 @@ class TrainDiffusionUnetLowdimWorkspace(BaseWorkspace):
 
         self.global_step = 0
         self.epoch = 0
+        self.save_plot_num = 5
+        self.save_plot_index = np.random.randint(0, cfg.dataloader.batch_size, self.save_plot_num)
 
     def run(self):
         cfg = copy.deepcopy(self.cfg)
@@ -252,7 +254,7 @@ class TrainDiffusionUnetLowdimWorkspace(BaseWorkspace):
                         obs_dict = {'obs': batch['obs']}
                         gt_action = batch['action']
                         if cfg.policy.model.mrollouts:
-                            gt_action[:, :, 0:2] = gt_action[:, :, 0:2] - batch['obs'][:, cfg.policy.n_obs_steps-1:cfg.policy.n_obs_steps, 0:2]
+                            # gt_action[:, :, 0:2] = gt_action[:, :, 0:2] - batch['obs'][:, cfg.policy.n_obs_steps-1:cfg.policy.n_obs_steps, 0:2]
                             commands_dict = {'command': batch['command']}
                             result = policy.predict_action(obs_dict, commands_dict=commands_dict)
                         else:
@@ -269,13 +271,34 @@ class TrainDiffusionUnetLowdimWorkspace(BaseWorkspace):
                         step_log['train_action_mse_error'] = mse.item()
                         # save the plot
                         if cfg.policy.mstep_prediction:
-                            _ = plt.plot(pred_action[0, :, 0].cpu().tolist(), pred_action[0, :, 1].cpu().tolist(), label="pred")
-                            _ = plt.plot(gt_action[0, :, 0].cpu().tolist(), gt_action[0, :, 1].cpu().tolist(), label="gt")
-                            _ = plt.legend(loc="upper left")
-                            image = wandb.Image(plt)
+                            image = self.save_plot(batch, self.save_plot_index, sample_num = 10)
                             step_log['sampled_trajectory'] = image
-                            # clear the plot
-                            plt.clf()
+
+                            # multi-modality plot
+                            # image = self.save_plot(pred_action, gt_action, self.save_plot_index, multi_modality = True)
+
+                            # plot_num = 100
+                            # batch = copy.deepcopy(train_sampling_batch)
+                                         
+                            # obs_dict = {'obs': batch['obs'][0:1].repeat(plot_num, 1, 1)}
+                            # commands_dict = {'command': batch['command'][0:1].repeat(plot_num, 1, 1)}
+                            # result = policy.predict_action(obs_dict, commands_dict=commands_dict)
+                            # pred_action = result['action_pred']
+                            # if cfg.pred_action_steps_only:
+                            #     pred_action = result['action']
+                            #     start = cfg.n_obs_steps - 1
+                            #     end = start + cfg.n_action_steps
+                            #     gt_action = gt_action[:,start:end]
+                            # else:
+                            #     pred_action = result['action_pred']
+                            # for i in range(plot_num):
+                            #     _ = plt.plot(pred_action[i, :, 0].cpu().tolist(), pred_action[i, :, 1].cpu().tolist())
+                            # _ = plt.plot(gt_action[0, :, 0].cpu().tolist(), gt_action[0, :, 1].cpu().tolist(), label="gt", linestyle='--')
+                            # plt.legend(loc="upper left")
+                            # image = wandb.Image(plt)
+                            # plt.clf()
+                            # step_log['sampled_trajectory_multi'] = image                        
+
                         # release RAM
                         del batch
                         del obs_dict
@@ -315,6 +338,28 @@ class TrainDiffusionUnetLowdimWorkspace(BaseWorkspace):
                 json_logger.log(step_log)
                 self.global_step += 1
                 self.epoch += 1
+    
+    def save_plot(self, batch, rand_idx, sample_num = 1):
+        image_list = list()
+        obs_dict = {'obs': batch['obs'][rand_idx].repeat(sample_num, 1, 1)}
+        commands_dict = {'command': batch['command'][rand_idx].repeat(sample_num, 1, 1)}
+        result = self.model.predict_action(obs_dict, commands_dict=commands_dict)
+        gt_action = batch['action'][rand_idx]
+        pred_action = result['action_pred']
+        
+        for i, idx in enumerate(rand_idx):
+            for sample_idx in range(sample_num):
+                plt.plot(pred_action[i*sample_num + sample_idx, :, 0].cpu().tolist(), pred_action[i*sample_num + sample_idx, :, 1].cpu().tolist())
+            plt.plot(gt_action[i, :, 0].cpu().tolist(), gt_action[i, :, 1].cpu().tolist(), label="gt", linestyle='--')
+            plt.legend(loc="upper left")
+
+            image = wandb.Image(plt)
+            plt.clf()
+            image_list.append(image)
+        # _ = plt.plot(pred_action[0, :, 0].cpu().tolist(), pred_action[0, :, 1].cpu().tolist(), label="pred")
+        # _ = plt.plot(gt_action[0, :, 0].cpu().tolist(), gt_action[0, :, 1].cpu().tolist(), label="gt")
+        # _ = plt.legend(loc="upper left")
+        return image_list
 
 @hydra.main(
     version_base=None,
