@@ -271,7 +271,7 @@ class TrainDiffusionUnetLowdimWorkspace(BaseWorkspace):
                         step_log['train_action_mse_error'] = mse.item()
                         # save the plot
                         if cfg.policy.mstep_prediction:
-                            image = self.save_plot(batch, self.save_plot_index, sample_num = 10)
+                            image = self.save_plot(batch, self.save_plot_index, sample_num = 50)
                             step_log['sampled_trajectory'] = image
 
                             # multi-modality plot
