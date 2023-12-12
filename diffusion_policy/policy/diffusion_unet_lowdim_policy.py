@@ -60,6 +60,7 @@ class DiffusionUnetLowdimPolicy(BaseLowdimPolicy):
         self.noise_range = noise_range
         self.history_cosistency = history_consistency
         self.kwargs = kwargs
+        # self.horizon = 12
 
         if num_inference_steps is None:
             num_inference_steps = noise_scheduler.config.num_train_timesteps

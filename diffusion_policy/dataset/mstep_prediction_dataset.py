@@ -131,7 +131,7 @@ class SlippernessLowdimDataset(BaseLowdimDataset):
         """
         # check if all the indices are with the same length
         buffer_start_idx, buffer_end_idx, _, _ = self.sampler.indices.T
-        assert ((buffer_end_idx - buffer_start_idx) == 276).all()
+        assert ((buffer_end_idx - buffer_start_idx) == self.horizon).all()
         # expand action
         indices_buffer = buffer_start_idx[:, None] + np.arange(self.horizon)
         sample_action = sample[self.action_key][indices_buffer]
@@ -150,5 +150,11 @@ class SlippernessLowdimDataset(BaseLowdimDataset):
     def __getitem__(self, idx: int) -> Dict[str, torch.Tensor]:
         sample = self.sampler.sample_sequence(idx)            
         data = self._sample_to_data(sample)
+        # debug
+        # data['action'] = np.concatenate([data['action'][0:1], data['action'][1:] - data['action'][:-1]], axis=0)
+        # sample the observation and command every 25 steps
+        data['action'] = data['action'][::25]
+        data['command'] = data['command'][::25]
+        
         torch_data = dict_apply(data, torch.from_numpy)
         return torch_data
