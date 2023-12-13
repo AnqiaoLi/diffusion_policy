@@ -83,7 +83,10 @@ class TrainDiffusionUnetLowdimWorkspace(BaseWorkspace):
         assert isinstance(dataset, BaseLowdimDataset)
         train_dataloader = DataLoader(dataset, **cfg.dataloader)
         if not cfg.training.resume:
-            normalizer = dataset.get_normalizer(range_eps=1e-10, mode="limits", offset_action_with_obs = cfg.policy.mstep_prediction)
+            if cfg.policy.mstep_prediction:
+                normalizer = dataset.get_normalizer(range_eps=1e-10, mode="limits", offset_action_with_obs = True)
+            else:
+                normalizer = dataset.get_normalizer(range_eps=1e-10, mode="limits")
 
             self.model.set_normalizer(normalizer)
             if cfg.training.use_ema:
@@ -274,6 +277,8 @@ class TrainDiffusionUnetLowdimWorkspace(BaseWorkspace):
                         if cfg.policy.mstep_prediction:
                             image = self.save_plot(batch, self.save_plot_index, sample_num = 50)
                             step_log['sampled_trajectory'] = image
+                        else:
+                            image = None
 
                             # multi-modality plot
                             # image = self.save_plot(pred_action, gt_action, self.save_plot_index, multi_modality = True)

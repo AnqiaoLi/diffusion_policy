@@ -28,8 +28,8 @@ keypoint_visible_rate: 1.0
 logging:
   group: null
   id: null
-  mode: disabled
-  # mode: online
+  # mode: disabled
+  mode: online
   name: base_frame_vels
   entity: anqiaoli
   project: diffusion_policy_debug
@@ -63,7 +63,7 @@ policy:
   horizon: 16
   mstep_prediction: false
   add_noise: true
-  noise_range: 0.1
+  noise_range: 0.01
   model:
     _target_: diffusion_policy.model.diffusion.conditional_unet1d.ConditionalUnet1D
     mrollouts: false
@@ -109,7 +109,7 @@ task:
     pad_before: 0
     seed: 42
     val_ratio: 0.1
-    zarr_path: /media/anqiao/My Passport/SP/Data/traj_data_pyramid_terrain_no_endding_base_003/traj.zarr
+    zarr_path: /media/anqiao/My Passport/SP/Data/traj_data_no_disturbance/traj.zarr
     # zarr_path: /media/anqiao/My Passport/SP/Data/traj_data_pyramid_terrain/traj_expand_obs_dim_supervised_horion=1+5.zarr
   env_runner:
     _target_: diffusion_policy.env_runner.pusht_keypoints_runner.PushTKeypointsRunner
