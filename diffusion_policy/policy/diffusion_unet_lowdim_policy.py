@@ -31,6 +31,7 @@ class DiffusionUnetLowdimPolicy(BaseLowdimPolicy):
             noise_range = 0.0,
             history_consistency = 10,
             res_iter = True,
+            uniformly_downsample=0,
             # parameters passed to step
             **kwargs):
         super().__init__()
@@ -62,6 +63,8 @@ class DiffusionUnetLowdimPolicy(BaseLowdimPolicy):
         self.history_cosistency = history_consistency
         self.res_iter = res_iter
         self.kwargs = kwargs
+        self.uniformly_downsample = uniformly_downsample
+        self.observation_indices = torch.arange(self.n_obs_steps - 1, -1, -self.uniformly_downsample).flip(0)
         # self.horizon = 12
 
         if num_inference_steps is None:
@@ -155,7 +158,12 @@ class DiffusionUnetLowdimPolicy(BaseLowdimPolicy):
             if self.mstep_prediction:
                 global_cond = torch.concat([nobs[:,:To].reshape(nobs.shape[0], -1), ncommands[:,:T].reshape(nobs.shape[0], -1)], dim=1)
             else:
-                global_cond = nobs[:,:To].reshape(nobs.shape[0], -1)
+                if self.uniformly_downsample > 1:
+                    global_cond = nobs[:, :To, :]
+                    global_cond = global_cond[:, self.observation_indices]
+                    global_cond = global_cond.reshape(global_cond.shape[0], -1)
+                else:
+                    global_cond = nobs[:,:To].reshape(nobs.shape[0], -1)
             shape = (B, T, Da)
             if self.pred_action_steps_only:
                 shape = (B, self.n_action_steps, Da)
@@ -248,8 +256,13 @@ class DiffusionUnetLowdimPolicy(BaseLowdimPolicy):
                 global_cond = torch.concat([obs[:,:self.n_obs_steps,:].reshape(obs.shape[0], -1), 
                                             command[:,:self.horizon].reshape(obs.shape[0], -1)], dim=1)
             else:
-                global_cond = obs[:,:self.n_obs_steps,:].reshape(
-                    obs.shape[0], -1)
+                if self.uniformly_downsample > 1:
+                    global_cond = obs[:, :self.n_obs_steps, :]
+                    global_cond = global_cond[:, self.observation_indices]
+                    global_cond = global_cond.reshape(global_cond.shape[0], -1)
+                else:
+                    global_cond = obs[:,:self.n_obs_steps,:].reshape(
+                        obs.shape[0], -1)   
             if self.pred_action_steps_only:
                 To = self.n_obs_steps
                 start = To

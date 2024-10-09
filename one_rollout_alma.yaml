@@ -3,6 +3,7 @@ action_dim: 48
 device: cuda:0
 action_mode: "f"
 eval_steps: 1000
+uniformly_downsample: 5
 checkpoint:
   save_last_ckpt: true
   save_last_snapshot: false
@@ -25,7 +26,7 @@ ema:
   power: 0.75
   update_after_step: 0
 exp_name: default
-horizon: 16
+horizon: 70
 keypoint_dim: 2
 keypoint_visible_rate: 1.0
 logging:
@@ -44,9 +45,9 @@ logging:
 multi_run:
   run_dir: data/outputs/2023.01.16/20.10.02_train_diffusion_unet_lowdim_slipperness
   wandb_name_base: 2023.01.16-20.10.02_train_diffusion_unet_lowdim_slipperness
-n_action_steps: 5
+n_action_steps: 20
 n_latency_steps: 0
-n_obs_steps: 10
+n_obs_steps: 50
 name: train_diffusion_unet_lowdim
 obs_as_global_cond: true
 obs_as_local_cond: false
@@ -60,14 +61,16 @@ optimizer:
   lr: 0.0001
   weight_decay: 1.0e-06
 past_action_visible: false
+pred_action_steps_only: true
 policy:
   _target_: diffusion_policy.policy.diffusion_unet_lowdim_policy.DiffusionUnetLowdimPolicy
   action_dim: ${action_dim}
-  horizon: 16
+  horizon: ${horizon}
   mstep_prediction: false
   add_noise: true
   noise_range: 0.01
   res_iter: True
+  uniformly_downsample: 5
   model:
     _target_: diffusion_policy.model.diffusion.conditional_unet1d.ConditionalUnet1D
     mrollouts: false
@@ -83,8 +86,8 @@ policy:
     kernel_size: 5
     local_cond_dim: null
     n_groups: 8
-  n_action_steps: 5
-  n_obs_steps: 10
+  n_action_steps: ${n_action_steps}
+  n_obs_steps: ${n_obs_steps}
   noise_scheduler:
     _target_: diffusers.schedulers.scheduling_ddpm.DDPMScheduler
     beta_end: 0.02
@@ -99,14 +102,13 @@ policy:
   obs_as_global_cond: true
   obs_as_local_cond: false
   obs_dim: ${obs_dim}
-  pred_action_steps_only: false
-pred_action_steps_only: false
+  pred_action_steps_only: ${pred_action_steps_only}
 task:
   action_dim: ${action_dim}
   dataset:
     _target_: diffusion_policy.dataset.alma_dataset.ALMALowdimDataset
     # _target_: diffusion_policy.dataset.pyramid_dataset.PyramidSupervideHorizonDataset
-    horizon: 16
+    horizon: ${horizon}
     max_train_episodes: 10000
     only_predict_base: true
     pad_after: 0
@@ -124,10 +126,10 @@ task:
     keypoint_visible_rate: 1.0
     legacy_test: true
     max_steps: 300
-    n_action_steps: 5
+    n_action_steps: ${n_action_steps}
     n_envs: null
     n_latency_steps: 0
-    n_obs_steps: 10
+    n_obs_steps: ${n_obs_steps}
     n_test: 50
     n_test_vis: 4
     n_train: 6

@@ -238,7 +238,7 @@ class TrainDiffusionUnetLowdimWorkspace(BaseWorkspace):
                 # env.set_angle_list(angle_list)
                 if (self.epoch % cfg.training.rollout_every) == 0:
                     env.reset()
-                    receding_horizon = 5
+                    receding_horizon = 1
                     for step in tqdm.tqdm(range(cfg.eval_steps), desc="eval on mock env", leave=False):
                         if step == 0 or ai >= receding_horizon: 
                             ai = 0
