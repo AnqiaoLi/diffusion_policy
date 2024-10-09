@@ -21,6 +21,7 @@ import tqdm
 import shutil
 import matplotlib.pyplot as plt
 import copy
+import h5py
 
 from diffusion_policy.common.pytorch_util import dict_apply, optimizer_to
 from diffusion_policy.workspace.base_workspace import BaseWorkspace
@@ -30,6 +31,7 @@ from diffusion_policy.env_runner.base_lowdim_runner import BaseLowdimRunner
 from diffusion_policy.common.checkpoint_util import TopKCheckpointManager
 from diffusion_policy.common.json_logger import JsonLogger
 from diffusion_policy.model.common.lr_scheduler import get_scheduler
+from diffusion_policy.env.Mock_env import MockEnv
 from diffusers.training_utils import EMAModel
 
 OmegaConf.register_new_resolver("eval", eval, replace=True)
@@ -114,7 +116,12 @@ class TrainDiffusionUnetLowdimWorkspace(BaseWorkspace):
             ema = hydra.utils.instantiate(
                 cfg.ema,
                 model=self.ema_model)
-
+        # configure env
+        with h5py.File(cfg.mock_env_init_data_path, 'r') as f:
+            input_states = torch.tensor(f['input_states'][:]).to(cfg.device)
+            output_fullstate = torch.tensor(f['output_fullstate'][:]).to(cfg.device)
+            data = {'obs': input_states, 'action': output_fullstate}
+        env = MockEnv(cfg, data = data, num_env=50)
         # configure env runner
         ###################### cite 
         # env_runner: BaseLowdimRunner
@@ -227,10 +234,30 @@ class TrainDiffusionUnetLowdimWorkspace(BaseWorkspace):
         ###################### cite 
 
                 # TODO Insert Issacgym
-                # if (self.epoch % cfg.training.rollout_every) == 0:
-                #     runner_log = env_runner.run(policy)
-                #     # log all
-                #     step_log.update(runner_log)
+                # angle_list = np.arange(0, -1.6, -0.1)
+                # env.set_angle_list(angle_list)
+                if (self.epoch % cfg.training.rollout_every) == 0:
+                    env.reset()
+                    receding_horizon = 5
+                    for step in tqdm.tqdm(range(cfg.eval_steps), desc="eval on mock env", leave=False):
+                        if step == 0 or ai >= receding_horizon: 
+                            ai = 0
+                            obs_dict = {'obs': env.get_obs()}
+                            # obs_dict = {'obs': torch.zeros(16, 10, 46)}
+                            # predict the action
+                            result = policy.predict_action(obs_dict)
+                            actions = result['action']
+                        action = actions[:, ai:ai+1, :]
+                        env.step(action, mode = cfg.action_mode)
+                        ai += 1
+                    fig_1 = env.plot_different_state(plt_indicies = [2, 7, 8, 45, 46, 47], plt_time = 1200, separate_env=True)
+                    step_log['rollingout_vs_reference'] = wandb.Image(fig_1)
+                    plt.close(fig_1)
+                    fig_2 = env.plot_different_state(plt_indicies = [2, 7, 8, 45, 46, 47], plt_time = 1200, separate_env=False,  plot_env_num = 50)
+                    step_log['rollingout_in_50_envs'] = wandb.Image(fig_2)
+                    plt.close(fig_2)
+                    # wandb.log({"eval_on_mockenv": wandb.Image(fig)})
+                # env.save_data("/home/anqiao/MasterThesis/Data/OvenOpening/pt_vis/mangle_0-1.2/angle_list_rolling_from_0_16envs_600epoch_diffusion.pt")
 
                 # run validation
                 if (self.epoch % cfg.training.val_every) == 0:
@@ -240,6 +267,7 @@ class TrainDiffusionUnetLowdimWorkspace(BaseWorkspace):
                                 leave=False, mininterval=cfg.training.tqdm_interval_sec) as tepoch:
                             for batch_idx, batch in enumerate(tepoch):
                                 batch = dict_apply(batch, lambda x: x.to(device, non_blocking=True))
+                                train_sampling_batch = copy.deepcopy(batch)
                                 loss = self.model.compute_loss(batch)
                                 val_losses.append(loss)
                                 if (cfg.training.max_val_steps is not None) \
@@ -274,11 +302,11 @@ class TrainDiffusionUnetLowdimWorkspace(BaseWorkspace):
                         # log
                         step_log['train_action_mse_error'] = mse.item()
                         # save the plot
-                        if cfg.policy.mstep_prediction:
-                            image = self.save_plot(batch, self.save_plot_index, sample_num = 50)
-                            step_log['sampled_trajectory'] = image
-                        else:
-                            image = None
+                        # if cfg.policy.mstep_prediction:
+                        #     image = self.save_plot(batch, self.save_plot_index, sample_num = 50)
+                        #     step_log['sampled_trajectory'] = image
+                        # else:
+                        #     image = None
 
                             # multi-modality plot
                             # image = self.save_plot(pred_action, gt_action, self.save_plot_index, multi_modality = True)
@@ -312,7 +340,7 @@ class TrainDiffusionUnetLowdimWorkspace(BaseWorkspace):
                         del result
                         del pred_action
                         del mse
-                        del image
+                        # del image
                 
                 # checkpoint
                 if (self.epoch % cfg.training.checkpoint_every) == 0:
@@ -360,12 +388,18 @@ class TrainDiffusionUnetLowdimWorkspace(BaseWorkspace):
             plt.plot(gt_action[i, :, 0].cpu().tolist(), gt_action[i, :, 1].cpu().tolist(), label="gt", linestyle='--')
             plt.legend(loc="upper left")
 
+            
             image = wandb.Image(plt)
             plt.clf()
             image_list.append(image)
         # _ = plt.plot(pred_action[0, :, 0].cpu().tolist(), pred_action[0, :, 1].cpu().tolist(), label="pred")
         # _ = plt.plot(gt_action[0, :, 0].cpu().tolist(), gt_action[0, :, 1].cpu().tolist(), label="gt")
         # _ = plt.legend(loc="upper left")
+        save_one_sample = False
+        if save_one_sample:
+            save_dict = {'pred': pred_action.cpu(), 'gt': gt_action.cpu(), "sample_num": sample_num, "rand_idx": rand_idx}
+            torch.save(save_dict, os.path.join("/home/anqiao/SP-DGDM/Data/data_for_plot", 'sample_mstep_pyramid_index_0.pt'))
+
         return image_list
 
 @hydra.main(

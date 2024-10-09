@@ -30,6 +30,7 @@ class DiffusionUnetLowdimPolicy(BaseLowdimPolicy):
             add_noise = False,
             noise_range = 0.0,
             history_consistency = 10,
+            res_iter = True,
             # parameters passed to step
             **kwargs):
         super().__init__()
@@ -59,6 +60,7 @@ class DiffusionUnetLowdimPolicy(BaseLowdimPolicy):
         self.add_noise = add_noise
         self.noise_range = noise_range
         self.history_cosistency = history_consistency
+        self.res_iter = res_iter
         self.kwargs = kwargs
         # self.horizon = 12
 
@@ -189,6 +191,16 @@ class DiffusionUnetLowdimPolicy(BaseLowdimPolicy):
             end = start + self.n_action_steps
             action = action_pred[:,start:end]
         
+        # residual prediction
+        if self.res_iter: 
+            obs = obs_dict['obs']
+            base_action = obs[:,start].unsqueeze(1).repeat(1, self.n_action_steps, 1).to(self.device)
+            res_action = action[:, :, :self.obs_dim]
+            full_action = action[:, :, self.obs_dim:]
+            for i in range(self.n_action_steps):
+                base_action[:, i:] += res_action[:, i:i+1]
+            action = torch.cat([base_action, full_action], dim=-1)
+        
         result = {
             'action': action,
             'action_pred': action_pred
@@ -276,7 +288,7 @@ class DiffusionUnetLowdimPolicy(BaseLowdimPolicy):
         # Predict the noise residual
         pred = self.model(noisy_trajectory, timesteps, 
             local_cond=local_cond, global_cond=global_cond)
-
+        
         pred_type = self.noise_scheduler.config.prediction_type 
         if pred_type == 'epsilon':
             target = noise
