@@ -202,7 +202,7 @@ class DiffusionUnetLowdimPolicy(BaseLowdimPolicy):
         # residual prediction
         if self.res_iter: 
             obs = obs_dict['obs']
-            base_action = obs[:,To].unsqueeze(1).repeat(1, self.n_action_steps, 1).to(self.device)
+            base_action = obs[:,To-1].unsqueeze(1).repeat(1, self.n_action_steps, 1).to(self.device)
             res_action = action[:, :, :self.obs_dim]
             full_action = action[:, :, self.obs_dim:]
             for i in range(self.n_action_steps):
