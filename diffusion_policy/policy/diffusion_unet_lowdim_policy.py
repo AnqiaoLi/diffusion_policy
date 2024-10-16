@@ -128,6 +128,11 @@ class DiffusionUnetLowdimPolicy(BaseLowdimPolicy):
 
         assert 'obs' in obs_dict
         assert 'past_action' not in obs_dict # not implemented yet
+        
+        # add observation noise
+        obs_dict = obs_dict.copy()
+        obs_dict['obs'] += torch.randn_like(obs_dict['obs'], device=self.device)*self.noise_range
+        
         nobs = self.normalizer['obs'].normalize(obs_dict['obs'])
         if  self.mstep_prediction:
             # nobs = nobs[:, :, 2:]
@@ -230,6 +235,12 @@ class DiffusionUnetLowdimPolicy(BaseLowdimPolicy):
         # if self.mstep_prediction:
         #     # normalize the predicted action to be relative to the current state
         #     batch['action'][:, :, 0:2] = batch['action'][:, :, 0:2] - batch['obs'][:,self.n_obs_steps-1:self.n_obs_steps, 0:2]
+        
+        # add noise
+        batch = batch.copy()
+        if self.add_noise:
+            batch['obs'] += torch.randn_like(batch['obs'], device=self.device)*self.noise_range
+            
         # normalize input
         nbatch = self.normalizer.normalize(batch)
 
@@ -238,10 +249,6 @@ class DiffusionUnetLowdimPolicy(BaseLowdimPolicy):
             command = nbatch['command']
         obs = nbatch['obs']
         action = nbatch['action']
-
-        # add noise
-        if self.add_noise:
-            nbatch['obs'] += torch.randn_like(nbatch['obs'], device=self.device)*self.noise_range
 
         # handle different ways of passing observation
         local_cond = None
